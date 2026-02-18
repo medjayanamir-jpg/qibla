@@ -9,344 +9,311 @@
   @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Sans:wght@300;400;600;700&display=swap');
 
   :root {
-    --gold: #C9A84C;
-    --gold-light: #E8D48B;
-    --emerald: #1A6B4A;
-    --bg: #0B1D15;
-    --text: #F0ECE0;
-    --dim: rgba(240,236,224,0.5);
+    --gold:#C9A84C; --gold-l:#E8D48B; --gold-d:#9A7B2E;
+    --bg:#0B1D15; --text:#F0ECE0; --dim:rgba(240,236,224,.5);
   }
-
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { overscroll-behavior:none; }
-
-  body {
-    font-family:'Noto Sans',sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    min-height:100dvh;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-    position:relative;
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{overscroll-behavior:none;overflow:hidden}
+  body{
+    font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);
+    height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;
   }
-
-  body::before {
+  body::before{
     content:'';position:fixed;inset:0;
-    background:radial-gradient(ellipse 90% 70% at 50% 30%,rgba(26,107,74,0.2) 0%,transparent 70%);
+    background:radial-gradient(ellipse 90% 70% at 50% 25%,rgba(26,107,74,.2) 0%,transparent 70%);
     pointer-events:none;
   }
 
-  .app {
-    display:flex;flex-direction:column;align-items:center;
-    padding:20px 16px;
-    position:relative;z-index:1;
-    width:100%;
-  }
+  .app{display:flex;flex-direction:column;align-items:center;padding:16px;position:relative;z-index:1;width:100%}
 
   /* Header */
-  .head { text-align:center; margin-bottom:10px; }
-  .head .ar { font-family:'Amiri',serif; font-size:22px; color:var(--gold); }
-  .head h1 { font-family:'Amiri',serif; font-size:24px; margin-top:2px; }
-  .head .city { font-size:13px; color:var(--dim); margin-top:4px; }
-  .head .city b { color:var(--text); }
+  .hd{text-align:center;margin-bottom:8px}
+  .hd .ar{font-family:'Amiri',serif;font-size:22px;color:var(--gold)}
+  .hd h1{font-family:'Amiri',serif;font-size:22px;margin-top:2px}
+  .hd .city{font-size:12px;color:var(--dim);margin-top:3px}
+  .hd .city b{color:var(--text)}
 
-  /* Degree display */
-  .degree-display {
-    font-family:'Amiri',serif;
-    font-size:48px;
-    font-weight:700;
-    color:var(--gold-light);
-    text-align:center;
-    margin:10px 0 6px;
-    letter-spacing:1px;
-  }
-  .degree-display .small { font-size:18px; color:var(--dim); font-weight:400; margin-left:4px; }
+  /* Degree */
+  .deg{font-family:'Amiri',serif;font-size:52px;font-weight:700;color:var(--gold-l);text-align:center;margin:8px 0 4px}
+  .deg .sm{font-size:18px;color:var(--dim);font-weight:400;margin-left:4px}
 
-  .compass-hint {
-    font-size:11px; color:var(--dim); text-align:center; margin-bottom:16px;
-    display:flex; align-items:center; gap:5px; justify-content:center;
-  }
-  .compass-hint .dot {
-    width:6px;height:6px;border-radius:50%;
-    background:#4CAF50;
-    animation:blink 1.5s infinite;
-  }
-  .compass-hint.off .dot { background:#666; animation:none; }
+  /* Hint */
+  .hint{font-size:11px;color:var(--dim);text-align:center;margin-bottom:12px;display:flex;align-items:center;gap:5px;justify-content:center}
+  .hint .dot{width:6px;height:6px;border-radius:50%;background:#4CAF50;animation:blink 1.5s infinite}
+  .hint.off .dot{background:#666;animation:none}
 
-  /* ─── COMPASS ─── */
-  .compass-container {
+  /* ═══ COMPASS ═══ */
+  .cmp{
     position:relative;
-    width:min(320px,85vw);
-    height:min(320px,85vw);
+    width:min(300px,82vw);height:min(300px,82vw);
     margin:0 auto;
   }
-
-  .compass-bg {
+  .cmp-bg{
     position:absolute;inset:0;border-radius:50%;
-    background:radial-gradient(circle at 45% 40%,rgba(26,107,74,0.1),rgba(10,26,20,0.95) 70%);
-    border:2px solid rgba(201,168,76,0.2);
-    box-shadow:0 0 50px rgba(26,107,74,0.15),inset 0 0 40px rgba(0,0,0,0.4);
+    background:radial-gradient(circle at 45% 40%,rgba(26,107,74,.08),rgba(10,26,20,.95) 70%);
+    border:2px solid rgba(201,168,76,.2);
+    box-shadow:0 0 50px rgba(26,107,74,.12),inset 0 0 40px rgba(0,0,0,.4);
   }
 
-  /* The whole dial rotates with device heading */
-  .compass-dial {
-    position:absolute;inset:0;
-    transition:transform 0.15s linear;
+  /* FIXED ARROW — z-index above dial, no rotation */
+  .arrow{
+    position:absolute;inset:0;z-index:20;pointer-events:none;
   }
 
-  .compass-dial svg { width:100%;height:100%; }
+  /* ROTATING DIAL — spins with device compass */
+  .dial{
+    position:absolute;inset:0;z-index:10;
+    transition:transform .12s linear;
+  }
+  .dial svg{width:100%;height:100%}
 
-  /* Fixed arrow in the center — always points UP */
-  .arrow-fixed {
-    position:absolute;
-    top:50%;left:50%;
-    transform:translate(-50%,-50%);
-    width:60%;height:60%;
-    pointer-events:none;
-    z-index:10;
-    filter:drop-shadow(0 0 12px rgba(201,168,76,0.5));
+  /* Info bar */
+  .ibar{display:flex;gap:10px;margin-top:16px;width:100%;max-width:330px}
+  .ib{
+    flex:1;background:rgba(26,107,74,.1);border:1px solid rgba(201,168,76,.1);
+    border-radius:12px;padding:9px 10px;text-align:center;backdrop-filter:blur(6px);
   }
+  .ib .l{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);font-weight:600}
+  .ib .v{font-family:'Amiri',serif;font-size:19px;color:var(--gold-l);font-weight:700;margin-top:2px}
+  .ib .v .u{font-size:11px;color:var(--dim);font-weight:400}
 
-  /* Kaaba icon at top */
-  .kaaba-top {
-    position:absolute;
-    top:6%;left:50%;transform:translateX(-50%);
-    font-size:28px;z-index:11;
-    filter:drop-shadow(0 0 8px rgba(201,168,76,0.4));
+  /* Aligned indicator */
+  .aligned{
+    font-size:13px;text-align:center;margin-top:10px;
+    color:#4CAF50;font-weight:600;
+    opacity:0;transition:opacity .3s;
   }
+  .aligned.show{opacity:1;animation:pulse 1s infinite}
 
-  /* Info cards */
-  .info-bar {
-    display:flex; gap:12px; margin-top:20px; width:100%; max-width:340px;
-  }
-  .info-box {
-    flex:1;
-    background:rgba(26,107,74,0.1);
-    border:1px solid rgba(201,168,76,0.12);
-    border-radius:12px;
-    padding:10px 12px;
-    text-align:center;
-    backdrop-filter:blur(8px);
-  }
-  .info-box .lbl { font-size:9px; text-transform:uppercase; letter-spacing:1.2px; color:var(--dim); font-weight:600; }
-  .info-box .val { font-family:'Amiri',serif; font-size:20px; color:var(--gold-light); font-weight:700; margin-top:2px; }
-  .info-box .val .u { font-size:11px; color:var(--dim); font-weight:400; }
-
-  .footer {
-    margin-top:20px;text-align:center;font-size:10px;color:rgba(240,236,224,0.2);line-height:1.5;
-  }
+  .ft{margin-top:14px;text-align:center;font-size:9px;color:rgba(240,236,224,.18);line-height:1.4}
 
   /* Loading */
-  .loading { text-align:center;padding:60px 20px; }
-  .spinner {
-    width:44px;height:44px;border:3px solid rgba(201,168,76,0.2);
-    border-top-color:var(--gold);border-radius:50%;
-    animation:spin .8s linear infinite;margin:0 auto 14px;
-  }
-  .loading p { font-size:13px;color:var(--dim); }
-  .err { color:#E87C6C; }
+  .ld{text-align:center;padding:60px 20px}
+  .sp{width:44px;height:44px;border:3px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+  .ld p{font-size:13px;color:var(--dim)} .er{color:#E87C6C}
 
-  @keyframes spin { to{transform:rotate(360deg)} }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 </style>
 </head>
 <body>
-
 <div class="app" id="app">
-  <div id="content">
-    <div class="loading"><div class="spinner"></div><p id="loadTxt">Определяем местоположение...</p></div>
+  <div id="ct">
+    <div class="ld"><div class="sp"></div><p id="lt">Определяем местоположение...</p></div>
   </div>
 </div>
 
 <script>
-/* ═══ CONFIG ═══ */
-const KAABA = { lat:21.4224779, lng:39.8261818 };
-const R = 6371;
+/* ═══════════════ CONFIG ═══════════════ */
+const KAABA={lat:21.4224779,lng:39.8261818};
+const R=6371;
 
-/* ═══ TELEGRAM ═══ */
-let tg = null;
-try {
-  tg = window.Telegram && window.Telegram.WebApp;
-  if(tg){ tg.ready(); tg.expand(); tg.headerColor='#0B1D15'; tg.backgroundColor='#0B1D15'; }
-} catch(e){}
+/* ═══════════════ TELEGRAM ═══════════════ */
+try{const tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready();tg.expand();tg.headerColor='#0B1D15';tg.backgroundColor='#0B1D15'}}catch(e){}
 
-const P = new URLSearchParams(location.search);
-const pCity = P.get('city')||'';
-const pLat = parseFloat(P.get('lat'));
-const pLng = parseFloat(P.get('lng'));
-const pLang = P.get('lang')||'ru';
+const P=new URLSearchParams(location.search);
+const pCity=P.get('city')||'', pLat=parseFloat(P.get('lat')), pLng=parseFloat(P.get('lng')), pLang=P.get('lang')||'ru';
 
-/* ═══ TRANSLATIONS ═══ */
-const L = {
-  ru:{ load:'Определяем местоположение...', qibla:'Кибла', dist:'Расстояние', dir:'Направление',
-       compassOn:'Компас активен', compassOff:'Поверните телефон для калибровки',
-       fromN:'от севера', km:'км', geoErr:'Не удалось определить местоположение',
-       geoDen:'Разрешите доступ к геолокации',
-       dirs:['С','ССВ','СВ','ВСВ','В','ВЮВ','ЮВ','ЮЮВ','Ю','ЮЮЗ','ЮЗ','ЗЮЗ','З','ЗСЗ','СЗ','ССЗ'] },
-  uz:{ load:'Joylashuv aniqlanmoqda...', qibla:'Qibla', dist:'Masofa', dir:'Yo\'nalish',
-       compassOn:'Kompas faol', compassOff:'Telefonni aylantiring',
-       fromN:'shimoldan', km:'km', geoErr:'Joylashuvni aniqlab bo\'lmadi',
-       geoDen:'Geolokatsiyaga ruxsat bering',
-       dirs:['Sh','ShShSh','ShSh','ShShSh','Sh','ShJSh','JSh','JJSh','J','JJG','JG','GJG','G','GShG','ShG','ShShG'] },
-  en:{ load:'Detecting location...', qibla:'Qibla', dist:'Distance', dir:'Direction',
-       compassOn:'Compass active', compassOff:'Rotate phone to calibrate',
-       fromN:'from north', km:'km', geoErr:'Unable to detect location',
-       geoDen:'Allow geolocation access',
-       dirs:['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'] }
+/* ═══════════════ i18n ═══════════════ */
+const L={
+  ru:{ld:'Определяем местоположение...',qibla:'Кибла',dist:'Расстояние',dir:'Направление',
+      on:'Компас активен · поверните к Кибле',off:'Включите компас — поверните телефон ∞',
+      face:'✅ Вы направлены к Кибле!',fromN:'от севера',km:'км',
+      err:'Не удалось определить местоположение',den:'Разрешите доступ к геолокации',
+      dirs:['С','ССВ','СВ','ВСВ','В','ВЮВ','ЮВ','ЮЮВ','Ю','ЮЮЗ','ЮЗ','ЗЮЗ','З','ЗСЗ','СЗ','ССЗ']},
+  uz:{ld:'Joylashuv aniqlanmoqda...',qibla:'Qibla',dist:'Masofa',dir:'Yo\'nalish',
+      on:'Kompas faol · Qiblaga qarating',off:'Kompasni yoqing — telefonni ∞ aylantiring',
+      face:'✅ Siz Qiblaga qarab turibsiz!',fromN:'shimoldan',km:'km',
+      err:'Joylashuvni aniqlab bo\'lmadi',den:'Geolokatsiyaga ruxsat bering',
+      dirs:['Sh','ShShSh','ShSh','ShShSh','Sh','ShJSh','JSh','JJSh','J','JJG','JG','GJG','G','GShG','ShG','ShShG']},
+  en:{ld:'Detecting location...',qibla:'Qibla',dist:'Distance',dir:'Direction',
+      on:'Compass active · turn toward Qibla',off:'Enable compass — move phone in ∞',
+      face:'✅ You are facing Qibla!',fromN:'from north',km:'km',
+      err:'Unable to detect location',den:'Allow geolocation access',
+      dirs:['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']}
 };
-const t = L[pLang]||L.ru;
-document.getElementById('loadTxt').textContent = t.load;
+const t=L[pLang]||L.ru;
+document.getElementById('lt').textContent=t.ld;
 
-/* ═══ MATH ═══ */
-const rad = d=>d*Math.PI/180, deg = r=>r*180/Math.PI;
+/* ═══════════════ MATH ═══════════════ */
+const toRad=d=>d*Math.PI/180, toDeg=r=>r*180/Math.PI;
 
 function qiblaAngle(lat,lng){
-  const φ=rad(lat), φK=rad(KAABA.lat), ΔL=rad(KAABA.lng-lng);
-  let q = deg(Math.atan2(Math.sin(ΔL), Math.cos(φ)*Math.tan(φK)-Math.sin(φ)*Math.cos(ΔL)));
+  const f=toRad(lat),fK=toRad(KAABA.lat),dL=toRad(KAABA.lng-lng);
+  let q=toDeg(Math.atan2(Math.sin(dL),Math.cos(f)*Math.tan(fK)-Math.sin(f)*Math.cos(dL)));
   return q<0?q+360:q;
 }
-
-function dist(lat,lng){
-  const φ1=rad(lat),φ2=rad(KAABA.lat),Δφ=rad(KAABA.lat-lat),Δλ=rad(KAABA.lng-lng);
-  const a=Math.sin(Δφ/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+function haversine(lat,lng){
+  const f1=toRad(lat),f2=toRad(KAABA.lat),df=toRad(KAABA.lat-lat),dl=toRad(KAABA.lng-lng);
+  const a=Math.sin(df/2)**2+Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
+function cDir(b){return t.dirs[Math.round(b/22.5)%16]}
 
-function compassDir(b){ return t.dirs[Math.round(b/22.5)%16]; }
+/* ═══════════════ STATE ═══════════════ */
+let qAngle=0, heading=0, compassOk=false;
 
-/* ═══ COMPASS STATE ═══ */
-let heading = 0;
-let qAngle = 0;
-let compassOk = false;
+/*
+ * ═══════════════════════════════════════════════════
+ *  KEY ROTATION LOGIC — THIS IS THE FIX
+ * ═══════════════════════════════════════════════════
+ *
+ *  ARROW  = FIXED, always points UP on screen
+ *  DIAL   = ROTATES with formula:
+ *
+ *     dialRotation = qiblaAngle − deviceHeading
+ *
+ *  - deviceHeading = where the phone's top is pointing
+ *    (0°=North, 90°=East, etc.)
+ *  - qiblaAngle = bearing from your location to Kaaba
+ *
+ *  When user turns phone so that top of phone faces Qibla:
+ *    deviceHeading ≈ qiblaAngle
+ *    dialRotation ≈ 0°
+ *    "N" on dial aligns to top → arrow points at Qibla ✅
+ *
+ *  Without compass data, dial shows static offset = qiblaAngle
+ *  (N at top means "if you face North, turn qiblaAngle° clockwise")
+ * ═══════════════════════════════════════════════════
+ */
 
+function updateDial(){
+  const dial=document.getElementById('dial');
+  if(!dial)return;
+
+  const rotation = qAngle - heading;
+  dial.style.transform = `rotate(${rotation}deg)`;
+
+  // Detect alignment: user faces Qibla within ±5°
+  const diff = Math.abs(((heading - qAngle) % 360 + 540) % 360 - 180);
+  const el = document.getElementById('aligned');
+  if(el){
+    if(diff < 5) el.classList.add('show');
+    else el.classList.remove('show');
+  }
+}
+
+/* ═══════════════ DEVICE COMPASS ═══════════════ */
 function startCompass(){
-  if(window.DeviceOrientationEvent){
-    if(typeof DeviceOrientationEvent.requestPermission==='function'){
-      DeviceOrientationEvent.requestPermission().then(s=>{
-        if(s==='granted') window.addEventListener('deviceorientation',onOri,true);
-      }).catch(()=>{});
-    } else {
-      window.addEventListener('deviceorientation',onOri,true);
-    }
+  if(!window.DeviceOrientationEvent)return;
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(s=>{
+      if(s==='granted')window.addEventListener('deviceorientation',onOri,true);
+    }).catch(()=>{});
+  }else{
+    window.addEventListener('deviceorientation',onOri,true);
   }
 }
 
 function onOri(e){
-  let h = null;
-  if(e.webkitCompassHeading!==undefined) h=e.webkitCompassHeading;
-  else if(e.alpha!==null) h=360-e.alpha;
-  if(h!==null){
-    heading=h; compassOk=true;
-    // Rotate the dial so the arrow (fixed pointing UP) points to Qibla
-    const rot = -(heading - qAngle);
-    const dial = document.getElementById('dial');
-    if(dial) dial.style.transform = `rotate(${rot}deg)`;
+  let h=null;
+  if(e.webkitCompassHeading!==undefined) h=e.webkitCompassHeading;   // iOS
+  else if(e.alpha!==null) h=(360-e.alpha)%360;                        // Android
+  if(h===null)return;
 
-    const hint = document.getElementById('compassHint');
-    if(hint && compassOk){
-      hint.classList.remove('off');
-      hint.querySelector('.txt').textContent = t.compassOn;
-    }
+  heading=h;
+  compassOk=true;
+  updateDial();
+
+  const hint=document.getElementById('hint');
+  if(hint&&!hint.dataset.on){
+    hint.classList.remove('off');
+    hint.querySelector('.tx').textContent=t.on;
+    hint.dataset.on='1';
   }
 }
 
-/* ═══ RENDER ═══ */
+/* ═══════════════ RENDER ═══════════════ */
 function render(lat,lng,city){
-  qAngle = qiblaAngle(lat,lng);
-  const d = dist(lat,lng);
-  const cDir = compassDir(qAngle);
-  const sz = 320;
-  const cx=sz/2, cy=sz/2;
+  qAngle=qiblaAngle(lat,lng);
+  const d=haversine(lat,lng);
+  const dir=cDir(qAngle);
+  const S=300,cx=S/2,cy=S/2;
 
   // Tick marks
   let ticks='';
   for(let i=0;i<360;i+=5){
-    const major=i%30===0, mid=i%15===0;
-    const r1=major?130:(mid?135:138), r2=145;
-    const a=rad(i-90);
+    const major=i%30===0,mid=i%15===0;
+    const r1=major?125:(mid?130:133),r2=142;
+    const a=toRad(i-90);
     ticks+=`<line x1="${cx+r1*Math.cos(a)}" y1="${cy+r1*Math.sin(a)}" x2="${cx+r2*Math.cos(a)}" y2="${cy+r2*Math.sin(a)}" stroke="${major?'rgba(201,168,76,.6)':'rgba(201,168,76,.15)'}" stroke-width="${major?1.5:.5}"/>`;
   }
 
   // Cardinal labels
-  const cards = [
-    [0,'N',.7],[90,'E',.4],[180,'S',.4],[270,'W',.4]
-  ];
-  let cardSvg='';
-  cards.forEach(([a,l,op])=>{
-    const r=115, ar=rad(a-90);
-    cardSvg+=`<text x="${cx+r*Math.cos(ar)}" y="${cy+r*Math.sin(ar)+5}" text-anchor="middle" fill="rgba(201,168,76,${op})" font-family="Amiri,serif" font-size="15" font-weight="700">${l}</text>`;
+  let cSvg='';
+  [[0,'N','rgba(201,168,76,.85)',16],[90,'E','rgba(201,168,76,.4)',13],[180,'S','rgba(201,168,76,.4)',13],[270,'W','rgba(201,168,76,.4)',13]].forEach(([a,l,c,fs])=>{
+    const r=110,ar=toRad(a-90);
+    cSvg+=`<text x="${cx+r*Math.cos(ar)}" y="${cy+r*Math.sin(ar)+5}" text-anchor="middle" fill="${c}" font-family="Amiri,serif" font-size="${fs}" font-weight="700">${l}</text>`;
   });
 
-  document.getElementById('content').innerHTML = `
-    <div class="head">
+  // Degree labels
+  [30,60,120,150,210,240,300,330].forEach(d=>{
+    const r=98,ar=toRad(d-90);
+    cSvg+=`<text x="${cx+r*Math.cos(ar)}" y="${cy+r*Math.sin(ar)+3}" text-anchor="middle" fill="rgba(201,168,76,.2)" font-family="Noto Sans" font-size="8">${d}°</text>`;
+  });
+
+  document.getElementById('ct').innerHTML=`
+    <div class="hd">
       <div class="ar">بِسْمِ ٱللَّٰهِ</div>
       <h1>🕋 ${t.qibla}</h1>
-      ${city?`<div class="city">📍 <b>${city}</b></div>`:''}
+      ${city?`<div class="city">📍 <b>${decodeURIComponent(city)}</b></div>`:''}
     </div>
 
-    <div class="degree-display">${qAngle.toFixed(1)}°<span class="small">${cDir}</span></div>
+    <div class="deg">${qAngle.toFixed(1)}°<span class="sm">${dir}</span></div>
 
-    <div class="compass-hint off" id="compassHint">
+    <div class="hint off" id="hint">
       <div class="dot"></div>
-      <span class="txt">${t.compassOff}</span>
+      <span class="tx">${t.off}</span>
     </div>
 
-    <div class="compass-container">
-      <div class="compass-bg"></div>
+    <div class="cmp">
+      <div class="cmp-bg"></div>
 
-      <div class="kaaba-top">🕋</div>
-
-      <!-- Fixed arrow (always points UP = toward Qibla when dial rotates) -->
-      <svg class="arrow-fixed" viewBox="0 0 200 200">
+      <!-- ★ FIXED ARROW — never moves, always points UP ★ -->
+      <svg class="arrow" viewBox="0 0 ${S} ${S}">
         <defs>
           <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#E8D48B"/>
             <stop offset="100%" stop-color="#9A7B2E"/>
           </linearGradient>
           <filter id="gw">
-            <feGaussianBlur stdDeviation="2" result="b"/>
+            <feGaussianBlur stdDeviation="3" result="b"/>
             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
-        <!-- Arrow pointing UP -->
         <g filter="url(#gw)">
-          <polygon points="100,15 88,100 100,90 112,100" fill="url(#ag)"/>
-          <polygon points="100,185 88,100 100,110 112,100" fill="rgba(201,168,76,0.2)"/>
+          <!-- Arrow head pointing UP -->
+          <polygon points="${cx},22 ${cx-15},${cy-12} ${cx},${cy-28} ${cx+15},${cy-12}" fill="url(#ag)"/>
+          <!-- Arrow tail -->
+          <polygon points="${cx},${S-22} ${cx-11},${cy+12} ${cx},${cy+28} ${cx+11},${cy+12}" fill="rgba(201,168,76,.12)"/>
         </g>
-        <!-- Center circle -->
-        <circle cx="100" cy="100" r="6" fill="#0B1D15" stroke="#C9A84C" stroke-width="2"/>
-        <circle cx="100" cy="100" r="2" fill="#C9A84C"/>
+        <!-- Kaaba icon at arrow tip -->
+        <text x="${cx}" y="16" text-anchor="middle" font-size="22">🕋</text>
+        <!-- Center dot -->
+        <circle cx="${cx}" cy="${cy}" r="6" fill="#0B1D15" stroke="#C9A84C" stroke-width="2"/>
+        <circle cx="${cx}" cy="${cy}" r="2.2" fill="#C9A84C"/>
       </svg>
 
-      <!-- Rotating dial (spins with device compass) -->
-      <div class="compass-dial" id="dial" style="transform:rotate(${-qAngle}deg)">
-        <svg viewBox="0 0 ${sz} ${sz}">
+      <!-- ★ ROTATING DIAL — rotates by (qiblaAngle - heading) ★ -->
+      <div class="dial" id="dial" style="transform:rotate(${qAngle}deg)">
+        <svg viewBox="0 0 ${S} ${S}">
           ${ticks}
-          ${cardSvg}
+          ${cSvg}
         </svg>
       </div>
     </div>
 
-    <div class="info-bar">
-      <div class="info-box">
-        <div class="lbl">${t.dir}</div>
-        <div class="val">${cDir}</div>
-      </div>
-      <div class="info-box">
-        <div class="lbl">${t.dist}</div>
-        <div class="val">${d.toFixed(0)}<span class="u"> ${t.km}</span></div>
-      </div>
-      <div class="info-box">
-        <div class="lbl">${t.qibla}</div>
-        <div class="val">${qAngle.toFixed(1)}°</div>
-      </div>
+    <div class="aligned" id="aligned">${t.face}</div>
+
+    <div class="ibar">
+      <div class="ib"><div class="l">${t.dir}</div><div class="v">${dir}</div></div>
+      <div class="ib"><div class="l">${t.dist}</div><div class="v">${d.toFixed(0)}<span class="u"> ${t.km}</span></div></div>
+      <div class="ib"><div class="l">${t.qibla}</div><div class="v">${qAngle.toFixed(1)}°</div></div>
     </div>
 
-    <div class="footer">
-      q = atan2(sin ΔL, cos φ · tan φK − sin φ · cos ΔL)<br>
+    <div class="ft">
+      q = atan2(sin ΔL, cos φ · tan φ<sub>K</sub> − sin φ · cos ΔL)<br>
       Kaaba: 21.4225°N, 39.8262°E
     </div>
   `;
@@ -354,17 +321,15 @@ function render(lat,lng,city){
   startCompass();
 }
 
-function showErr(m){
-  document.getElementById('content').innerHTML=`<div class="loading"><p class="err">⚠️ ${m}</p></div>`;
-}
+function showErr(m){document.getElementById('ct').innerHTML=`<div class="ld"><p class="er">⚠️ ${m}</p></div>`}
 
-/* ═══ INIT ═══ */
+/* ═══════════════ INIT ═══════════════ */
 (function(){
-  if(!isNaN(pLat)&&!isNaN(pLng)){ render(pLat,pLng,pCity); return; }
-  if(!navigator.geolocation){ showErr(t.geoErr); return; }
+  if(!isNaN(pLat)&&!isNaN(pLng)){render(pLat,pLng,pCity);return}
+  if(!navigator.geolocation){showErr(t.err);return}
   navigator.geolocation.getCurrentPosition(
     p=>render(p.coords.latitude,p.coords.longitude,pCity||''),
-    e=>showErr(e.code===1?t.geoDen:t.geoErr),
+    e=>showErr(e.code===1?t.den:t.err),
     {enableHighAccuracy:true,timeout:8000,maximumAge:60000}
   );
 })();
