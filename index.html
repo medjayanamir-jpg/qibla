@@ -3,56 +3,140 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Qibla</title>
+<title>Qibla & Tasbih</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Sans:wght@300;400;600;700&display=swap');
   :root{--gold:#C9A84C;--gold-l:#E8D48B;--gold-d:#9A7B2E;--bg:#0B1D15;--text:#F0ECE0;--dim:rgba(240,236,224,.5)}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{overscroll-behavior:none;overflow:hidden}
-  body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column}
   body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 90% 70% at 50% 25%,rgba(26,107,74,.2) 0%,transparent 70%);pointer-events:none}
-  .app{display:flex;flex-direction:column;align-items:center;padding:16px;position:relative;z-index:1;width:100%}
-  .hd{text-align:center;margin-bottom:8px}
-  .hd .ar{font-family:'Amiri',serif;font-size:22px;color:var(--gold)}
-  .hd h1{font-family:'Amiri',serif;font-size:22px;margin-top:2px}
-  .hd .city{font-size:12px;color:var(--dim);margin-top:3px} .hd .city b{color:var(--text)}
-  .deg{font-family:'Amiri',serif;font-size:52px;font-weight:700;color:var(--gold-l);text-align:center;margin:8px 0 4px}
-  .deg .sm{font-size:18px;color:var(--dim);font-weight:400;margin-left:4px}
-  .hint{font-size:11px;color:var(--dim);text-align:center;margin-bottom:12px;display:flex;align-items:center;gap:5px;justify-content:center}
-  .hint .dot{width:6px;height:6px;border-radius:50%;background:#4CAF50;animation:blink 1.5s infinite}
+
+  /* ═══ TABS ═══ */
+  .tabs{display:flex;gap:0;width:100%;max-width:400px;margin:0 auto;position:relative;z-index:30;padding:8px 16px 0;flex-shrink:0}
+  .tab{flex:1;text-align:center;padding:10px 0 8px;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;
+    border-bottom:2px solid transparent;transition:all .25s;user-select:none}
+  .tab.active{color:var(--gold-l);border-bottom-color:var(--gold)}
+  .tab:active{opacity:.7}
+
+  /* ═══ PAGES ═══ */
+  .page{display:none;flex:1;flex-direction:column;align-items:center;overflow-y:auto;overflow-x:hidden;position:relative;z-index:1;padding:12px 16px 24px}
+  .page.active{display:flex}
+
+  /* ═══ QIBLA PAGE ═══ */
+  .hd{text-align:center;margin-bottom:6px}
+  .hd .ar{font-family:'Amiri',serif;font-size:20px;color:var(--gold)}
+  .hd h1{font-family:'Amiri',serif;font-size:20px;margin-top:1px}
+  .hd .city{font-size:11px;color:var(--dim);margin-top:2px} .hd .city b{color:var(--text)}
+  .deg{font-family:'Amiri',serif;font-size:46px;font-weight:700;color:var(--gold-l);text-align:center;margin:4px 0 2px}
+  .deg .sm{font-size:16px;color:var(--dim);font-weight:400;margin-left:4px}
+  .hint{font-size:10px;color:var(--dim);text-align:center;margin-bottom:10px;display:flex;align-items:center;gap:5px;justify-content:center}
+  .hint .dot{width:5px;height:5px;border-radius:50%;background:#4CAF50;animation:blink 1.5s infinite}
   .hint.off .dot{background:#666;animation:none}
-  .cmp{position:relative;width:min(300px,82vw);height:min(300px,82vw);margin:0 auto}
-  .cmp-bg{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 45% 40%,rgba(26,107,74,.08),rgba(10,26,20,.95) 70%);border:2px solid rgba(201,168,76,.2);box-shadow:0 0 50px rgba(26,107,74,.12),inset 0 0 40px rgba(0,0,0,.4)}
+  .cmp{position:relative;width:min(270px,74vw);height:min(270px,74vw);margin:0 auto}
+  .cmp-bg{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 45% 40%,rgba(26,107,74,.08),rgba(10,26,20,.95) 70%);border:2px solid rgba(201,168,76,.2);box-shadow:0 0 40px rgba(26,107,74,.1),inset 0 0 30px rgba(0,0,0,.4)}
   .arrow{position:absolute;inset:0;z-index:20;pointer-events:none}
-  .dial{position:absolute;inset:0;z-index:10}
-  .dial svg{width:100%;height:100%}
-  .ibar{display:flex;gap:10px;margin-top:16px;width:100%;max-width:330px}
-  .ib{flex:1;background:rgba(26,107,74,.1);border:1px solid rgba(201,168,76,.1);border-radius:12px;padding:9px 10px;text-align:center;backdrop-filter:blur(6px)}
-  .ib .l{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);font-weight:600}
-  .ib .v{font-family:'Amiri',serif;font-size:19px;color:var(--gold-l);font-weight:700;margin-top:2px}
-  .ib .v .u{font-size:11px;color:var(--dim);font-weight:400}
-  .aligned{font-size:13px;text-align:center;margin-top:10px;color:#4CAF50;font-weight:600;opacity:0;transition:opacity .3s}
+  .dial{position:absolute;inset:0;z-index:10} .dial svg{width:100%;height:100%}
+  .ibar{display:flex;gap:8px;margin-top:12px;width:100%;max-width:320px}
+  .ib{flex:1;background:rgba(26,107,74,.1);border:1px solid rgba(201,168,76,.1);border-radius:10px;padding:7px 8px;text-align:center}
+  .ib .l{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);font-weight:600}
+  .ib .v{font-family:'Amiri',serif;font-size:17px;color:var(--gold-l);font-weight:700;margin-top:1px}
+  .ib .v .u{font-size:10px;color:var(--dim);font-weight:400}
+  .aligned{font-size:12px;text-align:center;margin-top:8px;color:#4CAF50;font-weight:600;opacity:0;transition:opacity .3s}
   .aligned.show{opacity:1;animation:pulse 1s infinite}
-  .ft{margin-top:14px;text-align:center;font-size:9px;color:rgba(240,236,224,.18);line-height:1.4}
-  .ld{text-align:center;padding:60px 20px}
-  .sp{width:44px;height:44px;border:3px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
-  .ld p{font-size:13px;color:var(--dim)} .er{color:#E87C6C}
+
+  /* ═══ TASBIH PAGE ═══ */
+  .tasbih-page{justify-content:center;gap:0}
+  .dhikr-selector{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;max-width:340px}
+  .dhikr-btn{
+    padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;
+    background:rgba(26,107,74,.15);border:1px solid rgba(201,168,76,.15);
+    color:var(--dim);cursor:pointer;transition:all .2s;user-select:none;
+    font-family:'Noto Sans',sans-serif;
+  }
+  .dhikr-btn.active{background:rgba(201,168,76,.2);border-color:var(--gold);color:var(--gold-l)}
+  .dhikr-btn:active{transform:scale(.95)}
+
+  .tasbih-display{text-align:center;margin-bottom:8px}
+  .tasbih-arabic{font-family:'Amiri',serif;font-size:28px;color:var(--gold);margin-bottom:2px;min-height:38px}
+  .tasbih-translit{font-size:12px;color:var(--dim);min-height:18px}
+  .tasbih-meaning{font-size:10px;color:rgba(240,236,224,.35);margin-top:2px;min-height:16px}
+
+  /* Progress ring + counter */
+  .counter-wrap{position:relative;width:220px;height:220px;margin:12px auto;cursor:pointer;user-select:none;-webkit-user-select:none}
+  .counter-wrap:active .tap-area{transform:scale(.97)}
+  .progress-ring{position:absolute;inset:0;transform:rotate(-90deg)}
+  .progress-bg{fill:none;stroke:rgba(201,168,76,.1);stroke-width:6}
+  .progress-bar{fill:none;stroke:var(--gold);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .15s ease}
+  .tap-area{
+    position:absolute;inset:12px;border-radius:50%;
+    background:radial-gradient(circle at 45% 40%,rgba(26,107,74,.15),rgba(10,26,20,.9));
+    border:2px solid rgba(201,168,76,.2);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transition:transform .1s;
+    box-shadow:0 0 30px rgba(26,107,74,.1),inset 0 0 20px rgba(0,0,0,.3);
+  }
+  .count-num{font-family:'Amiri',serif;font-size:64px;font-weight:700;color:var(--gold-l);line-height:1}
+  .count-target{font-size:12px;color:var(--dim);margin-top:2px}
+  .count-total{font-size:10px;color:rgba(240,236,224,.3);margin-top:4px}
+
+  /* Tasbih controls */
+  .tasbih-controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:14px}
+  .ctrl-btn{
+    width:44px;height:44px;border-radius:50%;border:1px solid rgba(201,168,76,.2);
+    background:rgba(26,107,74,.1);color:var(--gold);font-size:18px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:all .2s;
+    font-family:'Noto Sans',sans-serif;
+  }
+  .ctrl-btn:active{background:rgba(201,168,76,.15);transform:scale(.9)}
+  .target-selector{display:flex;gap:6px;margin-top:10px}
+  .target-btn{
+    padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;
+    background:rgba(26,107,74,.1);border:1px solid rgba(201,168,76,.1);
+    color:var(--dim);cursor:pointer;transition:all .2s;user-select:none;
+    font-family:'Noto Sans',sans-serif;
+  }
+  .target-btn.active{background:rgba(201,168,76,.2);border-color:var(--gold);color:var(--gold-l)}
+
+  /* Ripple */
+  .ripple{position:absolute;border-radius:50%;background:rgba(201,168,76,.15);
+    animation:rippleAnim .5s ease-out forwards;pointer-events:none}
+
+  /* Loading */
+  .ld{text-align:center;padding:50px 20px}
+  .sp{width:40px;height:40px;border:3px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+  .ld p{font-size:12px;color:var(--dim)} .er{color:#E87C6C}
+
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  @keyframes rippleAnim{0%{transform:scale(0);opacity:1}100%{transform:scale(2.5);opacity:0}}
 </style>
 </head>
 <body>
-<div class="app" id="app">
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('qibla')">🧭 <span id="tabQibla">Кибла</span></div>
+  <div class="tab" onclick="switchTab('tasbih')">📿 <span id="tabTasbih">Тасбих</span></div>
+</div>
+
+<!-- QIBLA PAGE -->
+<div class="page active" id="page-qibla">
   <div id="ct">
     <div class="ld"><div class="sp"></div><p id="lt">Определяем местоположение...</p></div>
   </div>
 </div>
+
+<!-- TASBIH PAGE -->
+<div class="page" id="page-tasbih">
+  <div class="tasbih-page" id="tasbih-content" style="display:flex;flex-direction:column;align-items:center;flex:1;justify-content:center;width:100%"></div>
+</div>
+
 <script>
-/* ═══ KAABA — consensus coordinates from multiple authoritative sources ═══ */
-const KAABA={lat:21.422487,lng:39.826206};
-const R=6371;
+/* ═══ KAABA ═══ */
+const KAABA={lat:21.422487,lng:39.826206},R=6371;
 
 /* ═══ TELEGRAM ═══ */
 try{const tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready();tg.expand();tg.headerColor='#0B1D15';tg.backgroundColor='#0B1D15'}}catch(e){}
@@ -61,26 +145,39 @@ const pCity=P.get('city')||'',pLat=parseFloat(P.get('lat')),pLng=parseFloat(P.ge
 
 /* ═══ i18n ═══ */
 const L={
-  ru:{ld:'Определяем местоположение...',qibla:'Кибла',dist:'Расстояние',dir:'Направление',
-      on:'Компас активен · поверните к Кибле',off:'Включите компас — поверните телефон ∞',
-      face:'✅ Вы направлены к Кибле!',km:'км',
-      err:'Не удалось определить местоположение',den:'Разрешите доступ к геолокации',
+  ru:{ld:'Определяем местоположение...',qibla:'Кибла',tasbih:'Тасбих',dist:'Расстояние',dir:'Направление',
+      on:'Компас активен',off:'Поверните телефон ∞',face:'✅ Вы направлены к Кибле!',km:'км',
+      err:'Не удалось определить местоположение',den:'Разрешите геолокацию',
+      reset:'Сброс',total:'Всего',of:'из',round:'круг',rounds:'кругов',
       dirs:['С','ССВ','СВ','ВСВ','В','ВЮВ','ЮВ','ЮЮВ','Ю','ЮЮЗ','ЮЗ','ЗЮЗ','З','ЗСЗ','СЗ','ССЗ']},
-  uz:{ld:'Joylashuv aniqlanmoqda...',qibla:'Qibla',dist:'Masofa',dir:'Yo\'nalish',
-      on:'Kompas faol · Qiblaga qarating',off:'Kompasni yoqing — telefonni ∞ aylantiring',
-      face:'✅ Siz Qiblaga qarab turibsiz!',km:'km',
+  uz:{ld:'Joylashuv aniqlanmoqda...',qibla:'Qibla',tasbih:'Tasbih',dist:'Masofa',dir:'Yo\'nalish',
+      on:'Kompas faol',off:'Telefonni ∞ aylantiring',face:'✅ Qiblaga qarab turibsiz!',km:'km',
       err:'Joylashuvni aniqlab bo\'lmadi',den:'Geolokatsiyaga ruxsat bering',
+      reset:'Qayta',total:'Jami',of:'dan',round:'aylanish',rounds:'aylanish',
       dirs:['Sh','ShShSh','ShSh','ShShSh','Sh','ShJSh','JSh','JJSh','J','JJG','JG','GJG','G','GShG','ShG','ShShG']},
-  en:{ld:'Detecting location...',qibla:'Qibla',dist:'Distance',dir:'Direction',
-      on:'Compass active · turn toward Qibla',off:'Enable compass — move phone in ∞',
-      face:'✅ You are facing Qibla!',km:'km',
-      err:'Unable to detect location',den:'Allow geolocation access',
+  en:{ld:'Detecting location...',qibla:'Qibla',tasbih:'Tasbih',dist:'Distance',dir:'Direction',
+      on:'Compass active',off:'Rotate phone ∞',face:'✅ Facing Qibla!',km:'km',
+      err:'Unable to detect location',den:'Allow geolocation',
+      reset:'Reset',total:'Total',of:'of',round:'round',rounds:'rounds',
       dirs:['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']}
 };
 const t=L[pLang]||L.ru;
 document.getElementById('lt').textContent=t.ld;
+document.getElementById('tabQibla').textContent=t.qibla;
+document.getElementById('tabTasbih').textContent=t.tasbih;
 
-/* ═══ MATH ═══ */
+/* ═══ TAB SWITCHING ═══ */
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active',i===(tab==='qibla'?0:1));
+  });
+  document.getElementById('page-qibla').classList.toggle('active',tab==='qibla');
+  document.getElementById('page-tasbih').classList.toggle('active',tab==='tasbih');
+}
+
+/* ═══════════════════════════════
+   QIBLA COMPASS (same as before)
+   ═══════════════════════════════ */
 const toRad=d=>d*Math.PI/180,toDeg=r=>r*180/Math.PI;
 function qiblaAngle(lat,lng){
   const f=toRad(lat),fK=toRad(KAABA.lat),dL=toRad(KAABA.lng-lng);
@@ -94,184 +191,174 @@ function haversine(lat,lng){
 }
 function cDir(b){return t.dirs[Math.round(b/22.5)%16]}
 
-/* ═══════════════════════════════════════════════════════════════
-   COMPASS ENGINE — cross-platform absolute heading
-   
-   PROBLEM: On many Android browsers, `deviceorientation` gives
-   RELATIVE alpha (0° = where phone pointed when page loaded).
-   It drifts and resets on reload — that's why "it works after
-   refresh" but then goes wrong.
-   
-   SOLUTION:
-   1. Android: Use `deviceorientationabsolute` event (gives true
-      north heading). Fall back to `deviceorientation` with
-      `event.absolute===true` check.
-   2. iOS: Use `webkitCompassHeading` (always absolute).
-   3. Low-pass filter for smooth, stable rotation.
-   ═══════════════════════════════════════════════════════════════ */
-
-let qAngle=0, smoothHeading=0, rawHeading=null, compassOk=false;
-let lastDialAngle=0; // for shortest-path rotation
-
-// Low-pass filter: smooths jitter, α=0.3 is responsive but stable
-function lowPass(oldVal,newVal,alpha){
-  // Handle 0/360 wraparound
-  let diff=newVal-oldVal;
-  if(diff>180)diff-=360;
-  if(diff<-180)diff+=360;
-  return(oldVal+alpha*diff+360)%360;
-}
-
-function onHeading(h){
-  if(h===null||isNaN(h))return;
-  rawHeading=h;
-  smoothHeading=compassOk?lowPass(smoothHeading,h,0.25):h;
-  compassOk=true;
-  updateDial();
-  const hint=document.getElementById('hint');
-  if(hint&&!hint.dataset.on){
-    hint.classList.remove('off');
-    hint.querySelector('.tx').textContent=t.on;
-    hint.dataset.on='1';
-  }
-}
-
-/* Handler for orientation events */
-function handleOrientation(e){
-  let h=null;
-  // iOS: webkitCompassHeading is always absolute (0=North)
-  if(e.webkitCompassHeading!==undefined&&e.webkitCompassHeading!==null){
-    h=e.webkitCompassHeading;
-  }
-  // Android absolute: alpha is absolute when event.absolute===true
-  else if(e.absolute===true&&e.alpha!==null){
-    h=(360-e.alpha)%360;
-  }
-  // Fallback: non-absolute alpha (UNRELIABLE for compass, but better than nothing)
-  else if(e.alpha!==null){
-    h=(360-e.alpha)%360;
-  }
-  if(h!==null)onHeading(h);
-}
-
+let qAngle=0,smoothHeading=0,compassOk=false,lastDialAngle=0;
+function lowPass(o,n,a){let d=n-o;if(d>180)d-=360;if(d<-180)d+=360;return(o+a*d+360)%360}
+function onHeading(h){if(h===null||isNaN(h))return;smoothHeading=compassOk?lowPass(smoothHeading,h,.25):h;compassOk=true;updateDial();
+  const hint=document.getElementById('hint');if(hint&&!hint.dataset.on){hint.classList.remove('off');hint.querySelector('.tx').textContent=t.on;hint.dataset.on='1'}}
+function handleOri(e){let h=null;if(e.webkitCompassHeading!==undefined&&e.webkitCompassHeading!==null)h=e.webkitCompassHeading;else if(e.absolute===true&&e.alpha!==null)h=(360-e.alpha)%360;else if(e.alpha!==null)h=(360-e.alpha)%360;if(h!==null)onHeading(h)}
 function startCompass(){
-  // PRIORITY 1: deviceorientationabsolute (Chrome Android — TRUE north)
-  if('ondeviceorientationabsolute' in window || window.DeviceOrientationAbsoluteEvent){
-    window.addEventListener('deviceorientationabsolute',handleOrientation,true);
-  }
-  
-  // PRIORITY 2: deviceorientation (iOS uses this + webkitCompassHeading)
-  if(window.DeviceOrientationEvent){
-    if(typeof DeviceOrientationEvent.requestPermission==='function'){
-      // iOS 13+ requires permission
-      DeviceOrientationEvent.requestPermission().then(s=>{
-        if(s==='granted'){
-          window.addEventListener('deviceorientation',handleOrientation,true);
-        }
-      }).catch(()=>{});
-    }else{
-      window.addEventListener('deviceorientation',handleOrientation,true);
-    }
-  }
+  if('ondeviceorientationabsolute' in window||window.DeviceOrientationAbsoluteEvent)window.addEventListener('deviceorientationabsolute',handleOri,true);
+  if(window.DeviceOrientationEvent){if(typeof DeviceOrientationEvent.requestPermission==='function'){DeviceOrientationEvent.requestPermission().then(s=>{if(s==='granted')window.addEventListener('deviceorientation',handleOri,true)}).catch(()=>{})}else window.addEventListener('deviceorientation',handleOri,true)}
 }
-
-/* ═══ DIAL ROTATION ═══
-   Arrow = FIXED (always points UP)
-   Dial = ROTATES by (qiblaAngle - heading)
-   When user faces Qibla → heading ≈ qiblaAngle → rotation ≈ 0 → N at top
-*/
 function updateDial(){
-  const dial=document.getElementById('dial');
-  if(!dial)return;
-  
-  const targetAngle=qAngle-smoothHeading;
-  
-  // Shortest path rotation to avoid 360→0 jumps
-  let diff=targetAngle-lastDialAngle;
-  if(diff>180)diff-=360;
-  if(diff<-180)diff+=360;
-  lastDialAngle+=diff;
-  
+  const dial=document.getElementById('dial');if(!dial)return;
+  const ta=qAngle-smoothHeading;let d=ta-lastDialAngle;if(d>180)d-=360;if(d<-180)d+=360;lastDialAngle+=d;
   dial.style.transform=`rotate(${lastDialAngle}deg)`;
-
-  // Detect alignment: user faces Qibla within ±5°
-  const d=Math.abs(((smoothHeading-qAngle)%360+540)%360-180);
-  const el=document.getElementById('aligned');
-  if(el){
-    if(d<5)el.classList.add('show');
-    else el.classList.remove('show');
-  }
+  const df=Math.abs(((smoothHeading-qAngle)%360+540)%360-180);
+  const el=document.getElementById('aligned');if(el){if(df<5)el.classList.add('show');else el.classList.remove('show')}
 }
 
-/* ═══ RENDER ═══ */
-function render(lat,lng,city){
-  qAngle=qiblaAngle(lat,lng);
-  const d=haversine(lat,lng);
-  const dir=cDir(qAngle);
-  const S=300,cx=S/2,cy=S/2;
-  let ticks='';
-  for(let i=0;i<360;i+=5){
-    const major=i%30===0,mid=i%15===0;
-    const r1=major?125:(mid?130:133),r2=142,a=toRad(i-90);
-    ticks+=`<line x1="${cx+r1*Math.cos(a)}" y1="${cy+r1*Math.sin(a)}" x2="${cx+r2*Math.cos(a)}" y2="${cy+r2*Math.sin(a)}" stroke="${major?'rgba(201,168,76,.6)':'rgba(201,168,76,.15)'}" stroke-width="${major?1.5:.5}"/>`;
-  }
-  let cSvg='';
-  [[0,'N','rgba(201,168,76,.85)',16],[90,'E','rgba(201,168,76,.4)',13],[180,'S','rgba(201,168,76,.4)',13],[270,'W','rgba(201,168,76,.4)',13]].forEach(([a,l,c,fs])=>{
-    const r=110,ar=toRad(a-90);
-    cSvg+=`<text x="${cx+r*Math.cos(ar)}" y="${cy+r*Math.sin(ar)+5}" text-anchor="middle" fill="${c}" font-family="Amiri,serif" font-size="${fs}" font-weight="700">${l}</text>`;
-  });
-  [30,60,120,150,210,240,300,330].forEach(dg=>{
-    const r=98,ar=toRad(dg-90);
-    cSvg+=`<text x="${cx+r*Math.cos(ar)}" y="${cy+r*Math.sin(ar)+3}" text-anchor="middle" fill="rgba(201,168,76,.2)" font-family="Noto Sans" font-size="8">${dg}°</text>`;
-  });
-
+function renderQibla(lat,lng,city){
+  qAngle=qiblaAngle(lat,lng);const d=haversine(lat,lng),dir=cDir(qAngle),S=270,cx=S/2,cy=S/2;
+  let ticks='';for(let i=0;i<360;i+=5){const mj=i%30===0,md=i%15===0,r1=mj?118:(md?122:125),r2=135,a=toRad(i-90);
+    ticks+=`<line x1="${cx+r1*Math.cos(a)}" y1="${cy+r1*Math.sin(a)}" x2="${cx+r2*Math.cos(a)}" y2="${cy+r2*Math.sin(a)}" stroke="${mj?'rgba(201,168,76,.6)':'rgba(201,168,76,.15)'}" stroke-width="${mj?1.5:.5}"/>`}
+  let cs='';[[0,'N','rgba(201,168,76,.85)',15],[90,'E','rgba(201,168,76,.4)',12],[180,'S','rgba(201,168,76,.4)',12],[270,'W','rgba(201,168,76,.4)',12]].forEach(([a,l,c,fs])=>{const r=103,ar=toRad(a-90);cs+=`<text x="${cx+r*Math.cos(ar)}" y="${cy+r*Math.sin(ar)+4}" text-anchor="middle" fill="${c}" font-family="Amiri,serif" font-size="${fs}" font-weight="700">${l}</text>`});
+  [30,60,120,150,210,240,300,330].forEach(dg=>{const r=92,ar=toRad(dg-90);cs+=`<text x="${cx+r*Math.cos(ar)}" y="${cy+r*Math.sin(ar)+3}" text-anchor="middle" fill="rgba(201,168,76,.2)" font-family="Noto Sans" font-size="7">${dg}°</text>`});
   document.getElementById('ct').innerHTML=`
-    <div class="hd">
-      <div class="ar">بِسْمِ ٱللَّٰهِ</div>
-      <h1>🕋 ${t.qibla}</h1>
-      ${city?`<div class="city">📍 <b>${decodeURIComponent(city)}</b></div>`:''}
-    </div>
+    <div class="hd"><div class="ar">بِسْمِ ٱللَّٰهِ</div><h1>🕋 ${t.qibla}</h1>${city?`<div class="city">📍 <b>${decodeURIComponent(city)}</b></div>`:''}</div>
     <div class="deg">${qAngle.toFixed(1)}°<span class="sm">${dir}</span></div>
     <div class="hint off" id="hint"><div class="dot"></div><span class="tx">${t.off}</span></div>
-    <div class="cmp">
-      <div class="cmp-bg"></div>
-      <svg class="arrow" viewBox="0 0 ${S} ${S}">
-        <defs>
-          <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E8D48B"/><stop offset="100%" stop-color="#9A7B2E"/></linearGradient>
-          <filter id="gw"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        </defs>
-        <g filter="url(#gw)">
-          <polygon points="${cx},22 ${cx-15},${cy-12} ${cx},${cy-28} ${cx+15},${cy-12}" fill="url(#ag)"/>
-          <polygon points="${cx},${S-22} ${cx-11},${cy+12} ${cx},${cy+28} ${cx+11},${cy+12}" fill="rgba(201,168,76,.12)"/>
-        </g>
-        <text x="${cx}" y="16" text-anchor="middle" font-size="22">🕋</text>
-        <circle cx="${cx}" cy="${cy}" r="6" fill="#0B1D15" stroke="#C9A84C" stroke-width="2"/>
-        <circle cx="${cx}" cy="${cy}" r="2.2" fill="#C9A84C"/>
-      </svg>
-      <div class="dial" id="dial" style="transform:rotate(${qAngle}deg)">
-        <svg viewBox="0 0 ${S} ${S}">${ticks}${cSvg}</svg>
-      </div>
+    <div class="cmp"><div class="cmp-bg"></div>
+      <svg class="arrow" viewBox="0 0 ${S} ${S}"><defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E8D48B"/><stop offset="100%" stop-color="#9A7B2E"/></linearGradient><filter id="gw"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <g filter="url(#gw)"><polygon points="${cx},20 ${cx-13},${cy-10} ${cx},${cy-24} ${cx+13},${cy-10}" fill="url(#ag)"/><polygon points="${cx},${S-20} ${cx-9},${cy+10} ${cx},${cy+24} ${cx+9},${cy+10}" fill="rgba(201,168,76,.12)"/></g>
+        <text x="${cx}" y="14" text-anchor="middle" font-size="19">🕋</text>
+        <circle cx="${cx}" cy="${cy}" r="5" fill="#0B1D15" stroke="#C9A84C" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="2" fill="#C9A84C"/></svg>
+      <div class="dial" id="dial" style="transform:rotate(${qAngle}deg)"><svg viewBox="0 0 ${S} ${S}">${ticks}${cs}</svg></div>
     </div>
     <div class="aligned" id="aligned">${t.face}</div>
     <div class="ibar">
       <div class="ib"><div class="l">${t.dir}</div><div class="v">${dir}</div></div>
       <div class="ib"><div class="l">${t.dist}</div><div class="v">${d.toFixed(0)}<span class="u"> ${t.km}</span></div></div>
       <div class="ib"><div class="l">${t.qibla}</div><div class="v">${qAngle.toFixed(1)}°</div></div>
-    </div>
-    <div class="ft">Kaaba: 21.42249°N, 39.82621°E · Great-Circle</div>
-  `;
-  lastDialAngle=qAngle; // init rotation state
-  startCompass();
+    </div>`;
+  lastDialAngle=qAngle;startCompass();
 }
-
 function showErr(m){document.getElementById('ct').innerHTML=`<div class="ld"><p class="er">⚠️ ${m}</p></div>`}
 
+/* ═══════════════════════════════
+   TASBIH COUNTER
+   ═══════════════════════════════ */
+const DHIKR=[
+  {ar:'سُبْحَانَ ٱللَّٰهِ',tr:'Субханаллах',truz:'Subhanalloh',tren:'SubhanAllah',
+   mean:'Пречист Аллах',meanuz:'Alloh pok',meanen:'Glory be to Allah',target:33},
+  {ar:'ٱلْحَمْدُ لِلَّٰهِ',tr:'Альхамдулиллях',truz:'Alhamdulillah',tren:'Alhamdulillah',
+   mean:'Хвала Аллаху',meanuz:'Allohga hamd',meanen:'Praise be to Allah',target:33},
+  {ar:'ٱللَّٰهُ أَكْبَرُ',tr:'Аллаху Акбар',truz:'Allohu Akbar',tren:'Allahu Akbar',
+   mean:'Аллах Велик',meanuz:'Alloh Buyuk',meanen:'Allah is the Greatest',target:33},
+  {ar:'لَا إِلَٰهَ إِلَّا ٱللَّٰهُ',tr:'Ля иляха илляллах',truz:'La ilaha illalloh',tren:'La ilaha illAllah',
+   mean:'Нет бога, кроме Аллаха',meanuz:'Allohdan boshqa iloh yo\'q',meanen:'There is no god but Allah',target:100},
+  {ar:'أَسْتَغْفِرُ ٱللَّٰهَ',tr:'Астагфируллах',truz:'Astaghfirulloh',tren:'Astaghfirullah',
+   mean:'Прошу прощения у Аллаха',meanuz:'Allohdan mag\'firat so\'rayman',meanen:'I seek forgiveness from Allah',target:100},
+  {ar:'سُبْحَانَ ٱللَّٰهِ وَبِحَمْدِهِ',tr:'Субханаллахи ва бихамдих',truz:'Subhanallahi va bihamdihi',tren:'SubhanAllahi wa bihamdihi',
+   mean:'Пречист Аллах и хвала Ему',meanuz:'Alloh pok va Unga hamd',meanen:'Glory and praise be to Allah',target:100},
+];
+
+let currentDhikr=0,count=0,totalCount=0,target=33;
+const CIRC=2*Math.PI*100; // progress ring circumference
+
+function getTr(d){return pLang==='uz'?d.truz:pLang==='en'?d.tren:d.tr}
+function getMean(d){return pLang==='uz'?d.meanuz:pLang==='en'?d.meanen:d.mean}
+
+function renderTasbih(){
+  const d=DHIKR[currentDhikr];target=d.target;
+  const el=document.getElementById('tasbih-content');
+  el.innerHTML=`
+    <div class="dhikr-selector" id="dhikrSel">
+      ${DHIKR.map((dh,i)=>`<div class="dhikr-btn${i===currentDhikr?' active':''}" onclick="selectDhikr(${i})">${getTr(dh)}</div>`).join('')}
+    </div>
+    <div class="tasbih-display">
+      <div class="tasbih-arabic">${d.ar}</div>
+      <div class="tasbih-translit">${getTr(d)}</div>
+      <div class="tasbih-meaning">${getMean(d)}</div>
+    </div>
+    <div class="counter-wrap" id="counterWrap" onclick="incrementCount(event)">
+      <svg class="progress-ring" viewBox="0 0 220 220">
+        <circle class="progress-bg" cx="110" cy="110" r="100"/>
+        <circle class="progress-bar" id="progressBar" cx="110" cy="110" r="100"
+          stroke-dasharray="${CIRC}" stroke-dashoffset="${CIRC}"/>
+      </svg>
+      <div class="tap-area">
+        <div class="count-num" id="countNum">0</div>
+        <div class="count-target" id="countTarget">0 ${t.of} ${target}</div>
+        <div class="count-total" id="countTotal">${t.total}: 0</div>
+      </div>
+    </div>
+    <div class="tasbih-controls">
+      <div class="ctrl-btn" onclick="resetCount()" title="${t.reset}">↺</div>
+    </div>
+    <div class="target-selector">
+      ${[33,99,100,500,1000].map(n=>`<div class="target-btn${n===target?' active':''}" onclick="setTarget(${n})">${n}</div>`).join('')}
+    </div>
+  `;
+  updateProgress();
+}
+
+function selectDhikr(i){
+  currentDhikr=i;count=0;
+  renderTasbih();
+}
+
+function setTarget(n){
+  target=n;count=0;
+  renderTasbih();
+}
+
+function incrementCount(ev){
+  count++;totalCount++;
+
+  // Haptic feedback
+  try{if(navigator.vibrate)navigator.vibrate(15)}catch(e){}
+  try{if(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.HapticFeedback)Telegram.WebApp.HapticFeedback.impactOccurred('light')}catch(e){}
+
+  // Ripple effect
+  const wrap=document.getElementById('counterWrap');
+  const rect=wrap.getBoundingClientRect();
+  const rip=document.createElement('div');
+  rip.className='ripple';
+  const size=60;
+  rip.style.width=rip.style.height=size+'px';
+  rip.style.left=(ev.clientX-rect.left-size/2)+'px';
+  rip.style.top=(ev.clientY-rect.top-size/2)+'px';
+  wrap.appendChild(rip);
+  setTimeout(()=>rip.remove(),500);
+
+  // Completed a round
+  if(count>=target){
+    count=0;
+    try{if(navigator.vibrate)navigator.vibrate([30,50,30])}catch(e){}
+    try{if(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.HapticFeedback)Telegram.WebApp.HapticFeedback.notificationOccurred('success')}catch(e){}
+  }
+
+  updateProgress();
+}
+
+function resetCount(){
+  count=0;totalCount=0;
+  updateProgress();
+  try{if(navigator.vibrate)navigator.vibrate(10)}catch(e){}
+}
+
+function updateProgress(){
+  const num=document.getElementById('countNum');
+  const tgt=document.getElementById('countTarget');
+  const tot=document.getElementById('countTotal');
+  const bar=document.getElementById('progressBar');
+  if(!num)return;
+  num.textContent=count;
+  tgt.textContent=`${count} ${t.of} ${target}`;
+  tot.textContent=`${t.total}: ${totalCount}`;
+  const pct=count/target;
+  const offset=CIRC*(1-pct);
+  bar.style.strokeDashoffset=offset;
+}
+
 /* ═══ INIT ═══ */
+renderTasbih();
 (function(){
-  if(!isNaN(pLat)&&!isNaN(pLng)){render(pLat,pLng,pCity);return}
+  if(!isNaN(pLat)&&!isNaN(pLng)){renderQibla(pLat,pLng,pCity);return}
   if(!navigator.geolocation){showErr(t.err);return}
   navigator.geolocation.getCurrentPosition(
-    p=>render(p.coords.latitude,p.coords.longitude,pCity||''),
+    p=>renderQibla(p.coords.latitude,p.coords.longitude,pCity||''),
     e=>showErr(e.code===1?t.den:t.err),
     {enableHighAccuracy:true,timeout:8000,maximumAge:60000}
   );
