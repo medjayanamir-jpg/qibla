@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Qibla Direction</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Sans:wght@300;400;600;700&display=swap');
+
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8D48B;
+    --gold-dark: #9A7B2E;
+    --emerald: #1A6B4A;
+    --bg: #0A1A14;
+    --bg-card: rgba(26, 107, 74, 0.12);
+    --text: #F0ECE0;
+    --text-dim: rgba(240, 236, 224, 0.6);
+    --text-gold: #E8D48B;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { overscroll-behavior: none; }
+
+  body {
+    font-family: 'Noto Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(26,107,74,0.25) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 80% 80%, rgba(201,168,76,0.08) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .app {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 16px 28px;
+    min-height: 100dvh;
+  }
+
+  /* ─── Header ─── */
+  .header { text-align: center; margin-bottom: 16px; animation: fadeD .7s ease-out; }
+  .header .bismillah { font-family: 'Amiri',serif; font-size: 24px; color: var(--gold); letter-spacing: 2px; }
+  .header h1 { font-family: 'Amiri',serif; font-size: 26px; font-weight: 700; }
+  .header .sub { font-size: 11px; color: var(--text-dim); font-weight: 300; margin-top: 2px; }
+
+  /* ─── Location ─── */
+  .loc { display: flex; align-items: center; gap: 6px; justify-content: center; margin-bottom: 14px; animation: fadeU .7s ease-out .15s both; }
+  .loc span { font-size: 12px; color: var(--text-dim); }
+  .loc strong { color: var(--text); font-weight: 600; }
+
+  /* ─── Compass ─── */
+  .compass-wrap {
+    position: relative;
+    width: min(290px, 78vw); height: min(290px, 78vw);
+    margin: 0 auto 20px;
+    animation: fadeU .8s ease-out .25s both;
+  }
+  .compass-glow {
+    position: absolute; inset: -18px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .compass-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid rgba(201,168,76,0.25);
+    background: radial-gradient(circle at 40% 35%, rgba(26,107,74,0.12) 0%, rgba(10,26,20,0.95) 70%);
+    box-shadow: 0 0 36px rgba(26,107,74,0.18), inset 0 0 50px rgba(0,0,0,0.5);
+  }
+  .compass-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* ─── Device compass rotation ─── */
+  .compass-body { transition: transform .15s linear; }
+
+  /* ─── Info ─── */
+  .info { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; animation: fadeU .8s ease-out .4s both; }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid rgba(201,168,76,0.13);
+    border-radius: 14px; padding: 14px 16px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .card .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--text-dim); font-weight: 600; margin-bottom: 4px; }
+  .card .val { font-family: 'Amiri',serif; font-size: 24px; color: var(--text-gold); font-weight: 700; }
+  .card .val .u { font-size: 13px; color: var(--text-dim); font-weight: 400; margin-left: 3px; }
+  .card .det { font-size: 11px; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
+  .card.full { text-align: center; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ─── Compass status ─── */
+  .compass-status {
+    display: flex; align-items: center; gap: 6px; justify-content: center;
+    font-size: 11px; color: var(--gold); margin-bottom: 6px;
+    animation: pulse 2s infinite;
+  }
+  .compass-status .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--gold);
+    animation: pulse 2s infinite;
+  }
+  .compass-status.off .dot { background: #666; animation: none; }
+  .compass-status.off { color: var(--text-dim); }
+
+  /* ─── Footer ─── */
+  .footer {
+    margin-top: 24px; text-align: center; font-size: 10px;
+    color: rgba(240,236,224,0.25); line-height: 1.5;
+    animation: fadeU .8s ease-out .55s both;
+  }
+  .footer .formula { font-family: 'Amiri',serif; font-size: 12px; color: rgba(201,168,76,0.35); margin-bottom: 2px; }
+
+  /* ─── Loading / Error ─── */
+  .status { text-align: center; padding: 50px 20px; animation: fadeU .5s ease-out; }
+  .spinner {
+    width: 44px; height: 44px; border: 3px solid rgba(201,168,76,0.2);
+    border-top-color: var(--gold); border-radius: 50%;
+    animation: spin .9s linear infinite; margin: 0 auto 14px;
+  }
+  .status p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+  .status .err { color: #E87C6C; }
+
+  @keyframes fadeD { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeU { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="header">
+    <div class="bismillah">بِسْمِ ٱللَّٰهِ</div>
+    <h1>🕋 Qibla</h1>
+    <p class="sub" id="subtitleText">Направление Киблы</p>
+  </header>
+  <div id="content">
+    <div class="status"><div class="spinner"></div><p id="loadingText">Определяем местоположение...</p></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONSTANTS
+   ═══════════════════════════════════════════════ */
+const KAABA_LAT = 21.4224779;
+const KAABA_LNG = 39.8261818;
+const R = 6371.0;
+
+/* ═══════════════════════════════════════════════
+   TELEGRAM WEB APP
+   ═══════════════════════════════════════════════ */
+let tg = null;
+try {
+  tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.headerColor = '#0A1A14';
+    tg.backgroundColor = '#0A1A14';
+  }
+} catch(e) {}
+
+/* Get city & language from URL params (passed from bot) */
+const params = new URLSearchParams(window.location.search);
+const paramCity = params.get('city') || '';
+const paramLat  = parseFloat(params.get('lat'));
+const paramLng  = parseFloat(params.get('lng'));
+const paramLang = params.get('lang') || 'ru';
+
+/* ═══════════════════════════════════════════════
+   TRANSLATIONS
+   ═══════════════════════════════════════════════ */
+const T = {
+  ru: {
+    subtitle: 'Направление Киблы',
+    loading: 'Определяем местоположение...',
+    qiblaDir: 'Направление Киблы',
+    fromNorth: 'от истинного севера по часовой стрелке',
+    distance: 'Расстояние',
+    bearing: 'Румб',
+    yourCoords: 'Ваши координаты',
+    kaabaCoords: 'Координаты Каабы',
+    compassOn: 'Компас активен',
+    compassOff: 'Компас недоступен',
+    method: 'Метод: Great-Circle (сферическая тригонометрия)',
+    geoError: 'Не удалось определить местоположение.',
+    geoDenied: 'Доступ к геолокации запрещён.',
+    km: 'км',
+    dirs: ['С','ССВ','СВ','ВСВ','В','ВЮВ','ЮВ','ЮЮВ','Ю','ЮЮЗ','ЮЗ','ЗЮЗ','З','ЗСЗ','СЗ','ССЗ'],
+  },
+  uz: {
+    subtitle: 'Qibla yo\'nalishi',
+    loading: 'Joylashuv aniqlanmoqda...',
+    qiblaDir: 'Qibla yo\'nalishi',
+    fromNorth: 'shimoldan soat yo\'nalishi bo\'yicha',
+    distance: 'Masofa',
+    bearing: 'Yo\'nalish',
+    yourCoords: 'Sizning koordinatalaringiz',
+    kaabaCoords: 'Ka\'ba koordinatalari',
+    compassOn: 'Kompas faol',
+    compassOff: 'Kompas mavjud emas',
+    method: 'Usul: Great-Circle (sferik trigonometriya)',
+    geoError: 'Joylashuvni aniqlab bo\'lmadi.',
+    geoDenied: 'Geolokatsiya ruxsat etilmagan.',
+    km: 'km',
+    dirs: ['Sh','ShShSh','ShSh','ShShSh','Sh','ShJSh','JSh','JJSh','J','JJG','JG','GJG','G','GShG','ShG','ShShG'],
+  },
+  en: {
+    subtitle: 'Qibla Direction',
+    loading: 'Detecting location...',
+    qiblaDir: 'Qibla Direction',
+    fromNorth: 'from true north clockwise',
+    distance: 'Distance',
+    bearing: 'Bearing',
+    yourCoords: 'Your coordinates',
+    kaabaCoords: 'Kaaba coordinates',
+    compassOn: 'Compass active',
+    compassOff: 'Compass unavailable',
+    method: 'Method: Great-Circle (spherical trigonometry)',
+    geoError: 'Unable to determine location.',
+    geoDenied: 'Geolocation access denied.',
+    km: 'km',
+    dirs: ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'],
+  }
+};
+
+const t = T[paramLang] || T.ru;
+document.getElementById('subtitleText').textContent = t.subtitle;
+document.getElementById('loadingText').textContent = t.loading;
+
+/* ═══════════════════════════════════════════════
+   MATH
+   ═══════════════════════════════════════════════ */
+const toRad = d => d * Math.PI / 180;
+const toDeg = r => r * 180 / Math.PI;
+
+function calcQibla(lat, lng) {
+  const φ  = toRad(lat), φK = toRad(KAABA_LAT);
+  const ΔL = toRad(KAABA_LNG - lng);
+  let q = toDeg(Math.atan2(Math.sin(ΔL), Math.cos(φ)*Math.tan(φK) - Math.sin(φ)*Math.cos(ΔL)));
+  return q < 0 ? q + 360 : q;
+}
+
+function calcDist(lat, lng) {
+  const φ1=toRad(lat), φ2=toRad(KAABA_LAT), Δφ=toRad(KAABA_LAT-lat), Δλ=toRad(KAABA_LNG-lng);
+  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function toDMS(dec, isLat) {
+  const abs=Math.abs(dec), d=Math.floor(abs), mf=(abs-d)*60, m=Math.floor(mf), s=((mf-m)*60).toFixed(1);
+  const dir = isLat ? (dec>=0?'N':'S') : (dec>=0?'E':'W');
+  return `${d}°${m}'${s}"${dir}`;
+}
+
+function compassName(b) {
+  return t.dirs[Math.round(b/22.5) % 16];
+}
+
+/* ═══════════════════════════════════════════════
+   DEVICE COMPASS (for real-time arrow rotation)
+   ═══════════════════════════════════════════════ */
+let deviceHeading = null;
+let compassAvailable = false;
+
+function startCompass() {
+  if (window.DeviceOrientationEvent) {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS 13+
+      DeviceOrientationEvent.requestPermission().then(state => {
+        if (state === 'granted') {
+          window.addEventListener('deviceorientation', onOrientation, true);
+        }
+      }).catch(() => {});
+    } else {
+      window.addEventListener('deviceorientation', onOrientation, true);
+    }
+  }
+}
+
+function onOrientation(e) {
+  let heading = null;
+  if (e.webkitCompassHeading !== undefined) {
+    heading = e.webkitCompassHeading; // iOS
+  } else if (e.alpha !== null) {
+    heading = 360 - e.alpha; // Android
+  }
+  if (heading !== null) {
+    deviceHeading = heading;
+    compassAvailable = true;
+    updateCompassRotation();
+  }
+}
+
+function updateCompassRotation() {
+  const body = document.querySelector('.compass-body');
+  if (body && deviceHeading !== null) {
+    body.style.transform = `rotate(${-deviceHeading}deg)`;
+  }
+  const statusEl = document.querySelector('.compass-status');
+  if (statusEl) {
+    if (compassAvailable) {
+      statusEl.classList.remove('off');
+      statusEl.querySelector('.label').textContent = t.compassOn;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER
+   ═══════════════════════════════════════════════ */
+function render(lat, lng, cityName) {
+  const qibla = calcQibla(lat, lng);
+  const dist  = calcDist(lat, lng);
+  const dir   = compassName(qibla);
+  const cx = 160, cy = 160;
+
+  const ticks = Array.from({length:72}, (_,i) => {
+    const a=i*5, major=a%30===0, mid=a%15===0;
+    const r1 = major?140:(mid?144:147), r2=152;
+    const rad=toRad(a-90);
+    const x1=cx+r1*Math.cos(rad), y1=cy+r1*Math.sin(rad);
+    const x2=cx+r2*Math.cos(rad), y2=cy+r2*Math.sin(rad);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${major?'rgba(201,168,76,.75)':'rgba(201,168,76,.22)'}" stroke-width="${major?1.4:.6}"/>`;
+  }).join('');
+
+  const degLabels = [30,60,120,150,210,240,300,330].map(d => {
+    const rad=toRad(d-90), r=128;
+    return `<text x="${cx+r*Math.cos(rad)}" y="${cy+r*Math.sin(rad)+4}" text-anchor="middle" fill="rgba(201,168,76,.3)" font-family="Noto Sans" font-size="9">${d}°</text>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = `
+    ${cityName ? `<div class="loc"><span>📍</span><span><strong>${cityName}</strong></span></div>` : ''}
+
+    <div class="compass-status off"><div class="dot"></div><span class="label">${t.compassOff}</span></div>
+
+    <div class="compass-wrap">
+      <div class="compass-glow"></div>
+      <div class="compass-ring"></div>
+      <svg class="compass-svg" viewBox="0 0 320 320">
+        <defs>
+          <linearGradient id="gG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E8D48B"/><stop offset="100%" stop-color="#9A7B2E"/>
+          </linearGradient>
+          <filter id="gl"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <!-- Rotating body (rotates with device compass) -->
+        <g class="compass-body">
+          ${ticks}
+          <!-- Cardinals -->
+          <text x="${cx}" y="28" text-anchor="middle" fill="#C9A84C" font-family="Amiri,serif" font-size="16" font-weight="700">N</text>
+          <text x="293" y="${cy+4}" text-anchor="middle" fill="rgba(201,168,76,.45)" font-family="Amiri,serif" font-size="13">E</text>
+          <text x="${cx}" y="298" text-anchor="middle" fill="rgba(201,168,76,.45)" font-family="Amiri,serif" font-size="13">S</text>
+          <text x="27" y="${cy+4}" text-anchor="middle" fill="rgba(201,168,76,.45)" font-family="Amiri,serif" font-size="13">W</text>
+          ${degLabels}
+
+          <!-- Qibla arrow -->
+          <g transform="rotate(${qibla}, ${cx}, ${cy})" filter="url(#gl)">
+            <line x1="${cx}" y1="${cy}" x2="${cx}" y2="44" stroke="url(#gG)" stroke-width="2.8" stroke-linecap="round"/>
+            <polygon points="${cx},30 ${cx-9},50 ${cx},44 ${cx+9},50" fill="#E8D48B"/>
+            <rect x="${cx-7}" y="14" width="14" height="14" rx="2" fill="#0A1A14" stroke="#C9A84C" stroke-width="1.3" transform="rotate(45,${cx},21)"/>
+            <text x="${cx}" y="25" text-anchor="middle" font-size="8" fill="#C9A84C">🕋</text>
+          </g>
+        </g>
+
+        <!-- Center -->
+        <circle cx="${cx}" cy="${cy}" r="7" fill="#0A1A14" stroke="#C9A84C" stroke-width="1.8"/>
+        <circle cx="${cx}" cy="${cy}" r="2.5" fill="#C9A84C"/>
+      </svg>
+    </div>
+
+    <div class="info">
+      <div class="card full">
+        <div class="lbl">${t.qiblaDir}</div>
+        <div class="val">${qibla.toFixed(2)}°<span class="u">(${dir})</span></div>
+        <div class="det">${t.fromNorth}</div>
+      </div>
+      <div class="row2">
+        <div class="card">
+          <div class="lbl">${t.distance}</div>
+          <div class="val">${dist.toFixed(0)}<span class="u">${t.km}</span></div>
+        </div>
+        <div class="card">
+          <div class="lbl">${t.bearing}</div>
+          <div class="val" style="font-size:20px">${dir}</div>
+          <div class="det">${qibla.toFixed(4)}°</div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="card">
+          <div class="lbl">${t.yourCoords}</div>
+          <div class="det" style="margin-top:2px;font-size:12px;color:var(--text)">${toDMS(lat,true)}<br>${toDMS(lng,false)}</div>
+        </div>
+        <div class="card">
+          <div class="lbl">${t.kaabaCoords}</div>
+          <div class="det" style="margin-top:2px;font-size:12px;color:var(--text)">${toDMS(KAABA_LAT,true)}<br>${toDMS(KAABA_LNG,false)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="formula">q = atan2(sin ΔL, cos φ · tan φ<sub>K</sub> − sin φ · cos ΔL)</div>
+      ${t.method}<br>Kaaba: 21.4225°N, 39.8262°E
+    </div>
+  `;
+
+  startCompass();
+}
+
+function showError(msg) {
+  document.getElementById('content').innerHTML = `<div class="status"><p class="err">⚠️ ${msg}</p></div>`;
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════ */
+(function init() {
+  // 1) If coordinates passed from bot — use them immediately
+  if (!isNaN(paramLat) && !isNaN(paramLng)) {
+    render(paramLat, paramLng, paramCity);
+    return;
+  }
+
+  // 2) Otherwise try device geolocation
+  if (!navigator.geolocation) {
+    showError(t.geoError);
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => render(pos.coords.latitude, pos.coords.longitude, paramCity || ''),
+    err => {
+      if (err.code === 1) showError(t.geoDenied);
+      else showError(t.geoError);
+    },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+  );
+})();
+</script>
+</body>
+</html>
