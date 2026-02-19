@@ -107,23 +107,42 @@ const KAABA={lat:21.422487,lng:39.826206},R=6371;
     tg.expand();
     tg.headerColor='#0B1D15';
     tg.backgroundColor='#0B1D15';
-
-    // Автообновление: перезагружаем страницу при каждом открытии WebApp
-    // viewportChanged срабатывает при разворачивании — обновляем геолокацию
-    tg.onEvent('viewportChanged', function(){
-      // Сбрасываем буфер компаса при разворачивании
-      if(typeof bufIdx!=='undefined'){
-        bufIdx=0; bufCount=0;
-        for(let i=0;i<BUF_SIZE;i++){bufCos[i]=0;bufSin[i]=0;}
-      }
-    });
-
-    // При активации WebApp (пользователь открыл снова) — пересчитываем позицию
-    tg.onEvent('activated', function(){
-      location.reload();
-    });
-
   }catch(e){}
+})();
+
+/* ═══ AUTO-REFRESH on re-open (Page Visibility API) ═══
+   Самый надёжный способ: срабатывает когда пользователь
+   возвращается на вкладку / открывает WebApp снова.
+   Работает на всех браузерах и всех версиях Telegram.
+*/
+(function(){
+  // Запоминаем момент первой загрузки
+  const loadedAt = Date.now();
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible'){
+      const awayMs = Date.now() - loadedAt;
+      // Обновляем если страница была скрыта более 30 секунд
+      // (защита от случайных срабатываний при прокрутке)
+      if(awayMs > 30000){
+        location.reload();
+      } else {
+        // Страница открыта недавно — просто сбрасываем буфер компаса
+        if(typeof bufIdx !== 'undefined'){
+          bufIdx=0; bufCount=0;
+          for(let i=0;i<BUF_SIZE;i++){bufCos[i]=0;bufSin[i]=0;}
+        }
+      }
+    }
+  });
+
+  // Дополнительно: focus на окне (десктоп / некоторые Android)
+  window.addEventListener('focus', function(){
+    if(typeof bufIdx !== 'undefined'){
+      bufIdx=0; bufCount=0;
+      for(let i=0;i<BUF_SIZE;i++){bufCos[i]=0;bufSin[i]=0;}
+    }
+  });
 })();
 const P=new URLSearchParams(location.search);
 const pCity=P.get('city')||'',pLat=parseFloat(P.get('lat')),pLng=parseFloat(P.get('lng')),pLang=P.get('lang')||'ru';
