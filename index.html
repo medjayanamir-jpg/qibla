@@ -38,8 +38,18 @@
   .ib .l{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);font-weight:600}
   .ib .v{font-family:'Amiri',serif;font-size:17px;color:var(--gold-l);font-weight:700;margin-top:1px}
   .ib .v .u{font-size:10px;color:var(--dim);font-weight:400}
-  .aligned{font-size:12px;text-align:center;margin-top:8px;color:#4CAF50;font-weight:600;opacity:0;transition:opacity .3s}
-  .aligned.show{opacity:1;animation:pulse 1s infinite}
+  .aligned{
+    font-size:18px;text-align:center;margin-top:10px;
+    color:#4ddb8a;font-weight:700;opacity:0;
+    transition:opacity .4s;letter-spacing:.02em;
+    text-shadow:0 0 12px rgba(77,219,138,.7),0 0 28px rgba(77,219,138,.4);
+    filter:drop-shadow(0 0 6px rgba(77,219,138,.6))
+  }
+  .aligned.show{opacity:1;animation:glowPulse 1.4s ease-in-out infinite}
+  @keyframes glowPulse{
+    0%,100%{text-shadow:0 0 12px rgba(77,219,138,.7),0 0 28px rgba(77,219,138,.4);transform:scale(1)}
+    50%{text-shadow:0 0 22px rgba(77,219,138,1),0 0 50px rgba(77,219,138,.7),0 0 80px rgba(77,219,138,.3);transform:scale(1.04)}
+  }
 
   /* TASBIH */
   .tasbih-page{justify-content:center;gap:0}
@@ -89,24 +99,49 @@
 const KAABA={lat:21.422487,lng:39.826206},R=6371;
 
 /* ═══ TELEGRAM ═══ */
-try{const tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready();tg.expand();tg.headerColor='#0B1D15';tg.backgroundColor='#0B1D15'}}catch(e){}
+(function(){
+  try{
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(!tg)return;
+    tg.ready();
+    tg.expand();
+    tg.headerColor='#0B1D15';
+    tg.backgroundColor='#0B1D15';
+
+    // Автообновление: перезагружаем страницу при каждом открытии WebApp
+    // viewportChanged срабатывает при разворачивании — обновляем геолокацию
+    tg.onEvent('viewportChanged', function(){
+      // Сбрасываем буфер компаса при разворачивании
+      if(typeof bufIdx!=='undefined'){
+        bufIdx=0; bufCount=0;
+        for(let i=0;i<BUF_SIZE;i++){bufCos[i]=0;bufSin[i]=0;}
+      }
+    });
+
+    // При активации WebApp (пользователь открыл снова) — пересчитываем позицию
+    tg.onEvent('activated', function(){
+      location.reload();
+    });
+
+  }catch(e){}
+})();
 const P=new URLSearchParams(location.search);
 const pCity=P.get('city')||'',pLat=parseFloat(P.get('lat')),pLng=parseFloat(P.get('lng')),pLang=P.get('lang')||'ru';
 
 /* ═══ i18n ═══ */
 const L={
   ru:{ld:'Определяем местоположение...',qibla:'Кибла',tasbih:'Тасбих',dist:'Расстояние',dir:'Направление',
-      on:'Компас активен',off:'Поверните телефон ∞',face:'✅ Вы направлены к Кибле!',km:'км',
+      on:'🧭 Компас работает',off:'Поверните телефон для калибровки ∞',face:'✅ Вы смотрите на Кибла! 🕋',km:'км',
       err:'Не удалось определить местоположение',den:'Разрешите геолокацию',
       reset:'Сброс',total:'Всего',of:'из',
       dirs:['С','ССВ','СВ','ВСВ','В','ВЮВ','ЮВ','ЮЮВ','Ю','ЮЮЗ','ЮЗ','ЗЮЗ','З','ЗСЗ','СЗ','ССЗ']},
   uz:{ld:'Joylashuv aniqlanmoqda...',qibla:'Qibla',tasbih:'Tasbih',dist:'Masofa',dir:'Yo\'nalish',
-      on:'Kompas faol',off:'Telefonni ∞ aylantiring',face:'✅ Qiblaga qarab turibsiz!',km:'km',
+      on:'🧭 Kompas ishlayapti',off:'Telefoni kalibrlash uchun aylantiring ∞',face:'✅ Siz Qiblaga qaraysiz! 🕋',km:'km',
       err:'Joylashuvni aniqlab bo\'lmadi',den:'Geolokatsiyaga ruxsat bering',
       reset:'Qayta',total:'Jami',of:'dan',
       dirs:['Sh','ShShSh','ShSh','ShShSh','Sh','ShJSh','JSh','JJSh','J','JJG','JG','GJG','G','GShG','ShG','ShShG']},
   en:{ld:'Detecting location...',qibla:'Qibla',tasbih:'Tasbih',dist:'Distance',dir:'Direction',
-      on:'Compass active',off:'Rotate phone ∞',face:'✅ Facing Qibla!',km:'km',
+      on:'🧭 Compass is working',off:'Rotate phone to calibrate ∞',face:'✅ You are facing the Qibla! 🕋',km:'km',
       err:'Unable to detect location',den:'Allow geolocation',
       reset:'Reset',total:'Total',of:'of',
       dirs:['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']}
@@ -375,12 +410,22 @@ function updProg(){
 /* ═══ INIT ═══ */
 renderTasbih();
 (function(){
-  if(!isNaN(pLat)&&!isNaN(pLng)){renderQibla(pLat,pLng,pCity);return}
+  if(!isNaN(pLat)&&!isNaN(pLng)){
+    renderQibla(pLat,pLng,pCity);
+    return;
+  }
   if(!navigator.geolocation){showErr(t.err);return}
+  // Первый быстрый фикс
   navigator.geolocation.getCurrentPosition(
     p=>renderQibla(p.coords.latitude,p.coords.longitude,pCity||''),
     e=>showErr(e.code===1?t.den:t.err),
-    {enableHighAccuracy:true,timeout:8000,maximumAge:60000}
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+  );
+  // Непрерывное слежение — автообновляет позицию при движении
+  navigator.geolocation.watchPosition(
+    p=>renderQibla(p.coords.latitude,p.coords.longitude,pCity||''),
+    ()=>{},
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 })();
 </script>
