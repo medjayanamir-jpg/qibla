@@ -32,7 +32,7 @@
   .cmp{position:relative;width:min(270px,74vw);height:min(270px,74vw);margin:0 auto}
   .cmp-bg{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 45% 40%,rgba(26,107,74,.08),rgba(10,26,20,.95) 70%);border:2px solid rgba(201,168,76,.2);box-shadow:0 0 40px rgba(26,107,74,.1),inset 0 0 30px rgba(0,0,0,.4)}
   .arrow{position:absolute;inset:0;z-index:20;pointer-events:none}
-  .dial{position:absolute;inset:0;z-index:10;will-change:transform;transition:transform 0.25s ease-out} .dial svg{width:100%;height:100%}
+  .dial{position:absolute;inset:0;z-index:10;will-change:transform} .dial svg{width:100%;height:100%}
   .ibar{display:flex;gap:8px;margin-top:12px;width:100%;max-width:320px}
   .ib{flex:1;background:rgba(26,107,74,.1);border:1px solid rgba(201,168,76,.1);border-radius:10px;padding:7px 8px;text-align:center}
   .ib .l{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);font-weight:600}
@@ -271,18 +271,13 @@ function doRender(){
   const heading=getSmoothedHeading();
   const targetAngle=qAngle-heading;
 
-  // Dead zone: skip tiny changes (<1°) to prevent micro-jitter
   if(lastRenderedAngle!==null){
-    let delta=targetAngle-lastRenderedAngle;
-    if(delta>180)delta-=360;
-    if(delta<-180)delta+=360;
-    if(Math.abs(delta)<1.0)return;
-    // Shortest path rotation — accumulate delta
+    // Compute shortest angular delta (always -180..+180)
+    let delta=((targetAngle-lastRenderedAngle)%360+540)%360-180;
+    // Dead zone: ignore noise smaller than 2°
+    if(Math.abs(delta)<2.0)return;
+    // Accumulate unbounded — do NOT normalize, or next delta will be wrong
     lastRenderedAngle+=delta;
-    // Normalize to [-180, 180] range to prevent unbounded drift
-    // that causes browser to take the long way around
-    if(lastRenderedAngle>180)lastRenderedAngle-=360;
-    if(lastRenderedAngle<-180)lastRenderedAngle+=360;
   }else{
     lastRenderedAngle=targetAngle;
   }
@@ -364,7 +359,7 @@ function renderQibla(lat,lng,city){
         <circle cx="${cx}" cy="${cy}" r="5" fill="#0B1D15" stroke="#C9A84C" stroke-width="2"/>
         <circle cx="${cx}" cy="${cy}" r="2" fill="#C9A84C"/>
       </svg>
-      <div class="dial" id="dial"><svg viewBox="0 0 ${S} ${S}">${ticks}${cs}<text x="${cx}" y="14" text-anchor="middle" font-size="19">🕋</text></svg></div>
+      <div class="dial" id="dial"><svg viewBox="0 0 ${S} ${S}">${ticks}${cs}<text x="${cx}" y="13" text-anchor="middle" font-size="19">🕋</text></svg></div>
     </div>
     <div class="aligned" id="aligned">${t.face}</div>
     <div class="ibar">
