@@ -131,6 +131,7 @@ const KAABA={lat:21.422487,lng:39.826206},R=6371;
           bufIdx=0; bufCount=0;
           for(let i=0;i<BUF_SIZE;i++){bufCos[i]=0;bufSin[i]=0;}
           lastRenderedAngle=null;
+          lastArrowAngle=null;
         }
       }
     }
@@ -142,6 +143,7 @@ const KAABA={lat:21.422487,lng:39.826206},R=6371;
       bufIdx=0; bufCount=0;
       for(let i=0;i<BUF_SIZE;i++){bufCos[i]=0;bufSin[i]=0;}
       lastRenderedAngle=null;
+      lastArrowAngle=null;
     }
   });
 })();
@@ -196,9 +198,10 @@ function cDir(b){return t.dirs[Math.round(b/22.5)%16]}
 /* ── Compass state ── */
 let qAngle=0;
 let compassOk=false;
-let gotAbsolute=false;       // true once we get absolute event
-let lastRenderedAngle=null;  // last angle applied to DOM
-let renderQueued=false;      // rAF guard
+let gotAbsolute=false;
+let lastRenderedAngle=null;  // угол циферблата
+let lastArrowAngle=null;     // угол стрелки киблы
+let renderQueued=false;
 
 /*
  * CIRCULAR BUFFER for heading samples.
@@ -267,36 +270,52 @@ function scheduleRender(){
 function doRender(){
   renderQueued=false;
   const dial=document.getElementById('dial');
-  if(!dial)return;
+  const qarrow=document.getElementById('qarrow');
+  if(!dial||!qarrow)return;
 
   const heading=getSmoothedHeading();
-  // Не рендерим пока нет достаточно сэмплов — иначе dial прыгает к qAngle
   if(heading===null)return;
 
-  const targetAngle=qAngle-heading;
+  // Циферблат вращается против хода компаса — N всегда на реальном севере
+  const dialTarget=-heading;
+  // Стрелка киблы всегда указывает на Мекку
+  const arrowTarget=qAngle-heading;
 
+  // Обновляем циферблат (с dead zone 2°)
   if(lastRenderedAngle!==null){
-    // Compute shortest angular delta (always -180..+180)
-    let delta=((targetAngle-lastRenderedAngle)%360+540)%360-180;
-    // Dead zone: ignore noise smaller than 2°
-    if(Math.abs(delta)<2.0)return;
-    // Accumulate unbounded — do NOT normalize, or next delta will be wrong
-    lastRenderedAngle+=delta;
+    let d=((dialTarget-lastRenderedAngle)%360+540)%360-180;
+    if(Math.abs(d)<2.0){
+      // Проверим стрелку отдельно даже если диск не двигается
+    } else {
+      lastRenderedAngle+=d;
+      dial.style.transform=`rotate(${lastRenderedAngle}deg)`;
+    }
   }else{
-    lastRenderedAngle=targetAngle;
+    lastRenderedAngle=dialTarget;
+    dial.style.transform=`rotate(${lastRenderedAngle}deg)`;
   }
 
-  dial.style.transform=`rotate(${lastRenderedAngle}deg)`;
+  // Обновляем стрелку киблы (с dead zone 2°)
+  if(lastArrowAngle!==null){
+    let d=((arrowTarget-lastArrowAngle)%360+540)%360-180;
+    if(Math.abs(d)>=2.0){
+      lastArrowAngle+=d;
+      qarrow.style.transform=`rotate(${lastArrowAngle}deg)`;
+    }
+  }else{
+    lastArrowAngle=arrowTarget;
+    qarrow.style.transform=`rotate(${lastArrowAngle}deg)`;
+  }
 
-  // Alignment check
-  const diff=Math.abs(((heading-qAngle)%360+540)%360-180);
+  // Выравнивание: стрелка смотрит вверх (≈0°) — пользователь лицом к Мекке
+  const normArrow=((lastArrowAngle||0)%360+360)%360;
+  const diff=normArrow>180?360-normArrow:normArrow;
   const el=document.getElementById('aligned');
   if(el){
     if(diff<5)el.classList.add('show');
     else el.classList.remove('show');
   }
 
-  // Update hint
   const hint=document.getElementById('hint');
   if(hint&&!hint.dataset.on){
     hint.classList.remove('off');
@@ -366,7 +385,8 @@ function renderQibla(lat,lng,city){
     <div class="deg">${qAngle.toFixed(1)}°<span class="sm">${dir}</span></div>
     <div class="hint off" id="hint"><div class="dot"></div><span class="tx">${t.off}</span></div>
     <div class="cmp"><div class="cmp-bg"></div>
-      <svg class="arrow" viewBox="0 0 ${S} ${S}">
+      <div class="dial" id="dial"><svg viewBox="0 0 ${S} ${S}">${ticks}${cs}</svg></div>
+      <svg class="arrow" id="qarrow" viewBox="0 0 ${S} ${S}" style="position:absolute;inset:0;z-index:20;pointer-events:none;will-change:transform">
         <defs>
           <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E8D48B"/><stop offset="100%" stop-color="#9A7B2E"/></linearGradient>
           <filter id="gw"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
@@ -375,10 +395,10 @@ function renderQibla(lat,lng,city){
           <polygon points="${cx},20 ${cx-13},${cy-10} ${cx},${cy-24} ${cx+13},${cy-10}" fill="url(#ag)"/>
           <polygon points="${cx},${S-20} ${cx-9},${cy+10} ${cx},${cy+24} ${cx+9},${cy+10}" fill="rgba(201,168,76,.12)"/>
         </g>
+        <text x="${cx}" y="13" text-anchor="middle" font-size="19">🕋</text>
         <circle cx="${cx}" cy="${cy}" r="5" fill="#0B1D15" stroke="#C9A84C" stroke-width="2"/>
         <circle cx="${cx}" cy="${cy}" r="2" fill="#C9A84C"/>
       </svg>
-      <div class="dial" id="dial"><svg viewBox="0 0 ${S} ${S}">${ticks}${cs}<text x="${cx}" y="13" text-anchor="middle" font-size="19">🕋</text></svg></div>
     </div>
     <div class="aligned" id="aligned">${t.face}</div>
     <div class="ibar">
@@ -388,6 +408,7 @@ function renderQibla(lat,lng,city){
     </div>`;
 
   lastRenderedAngle=null;
+  lastArrowAngle=null;
   // startCompass вызывается отдельно один раз — не здесь
 }
 
