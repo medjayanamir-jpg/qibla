@@ -308,18 +308,33 @@ function doRender(){
 /* ── Start compass listeners with correct priority ── */
 function startCompass(){
   // PRIORITY 1: deviceorientationabsolute (Chrome Android — true north)
-  // This gives absolute heading and is the most reliable on Android
   if('ondeviceorientationabsolute' in window||window.DeviceOrientationAbsoluteEvent){
     window.addEventListener('deviceorientationabsolute',onAbsoluteSensor,true);
   }
 
-  // PRIORITY 2: deviceorientation (iOS uses webkitCompassHeading from here)
+  // PRIORITY 2: deviceorientation
   if(window.DeviceOrientationEvent){
     if(typeof DeviceOrientationEvent.requestPermission==='function'){
-      // iOS 13+ permission
-      DeviceOrientationEvent.requestPermission().then(s=>{
-        if(s==='granted')window.addEventListener('deviceorientation',onSensor,true);
-      }).catch(()=>{});
+      // iOS 13+ — разрешение ТОЛЬКО из пользовательского жеста (tap)
+      // Показываем кнопку поверх hint
+      const hint=document.getElementById('hint');
+      if(hint&&!hint.dataset.iosAsked){
+        hint.dataset.iosAsked='1';
+        hint.innerHTML=`<button id="ios-perm" style="
+          background:rgba(201,168,76,.2);border:1px solid var(--gold);
+          color:var(--gold-l);border-radius:20px;padding:6px 18px;
+          font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans',sans-serif
+        ">🧭 Разрешить компас</button>`;
+        document.getElementById('ios-perm').addEventListener('click',function(){
+          DeviceOrientationEvent.requestPermission().then(s=>{
+            if(s==='granted'){
+              window.addEventListener('deviceorientation',onSensor,true);
+              const h=document.getElementById('hint');
+              if(h){h.className='hint off';h.innerHTML='<div class="dot"></div><span class="tx">'+t.off+'</span>';}
+            }
+          }).catch(()=>{});
+        },{once:true});
+      }
     }else{
       window.addEventListener('deviceorientation',onSensor,true);
     }
@@ -437,17 +452,20 @@ renderTasbih();
     return;
   }
   if(!navigator.geolocation){showErr(t.err);return}
-  // Первый быстрый фикс
+
+  // Сначала быстрый фикс — только после успеха запускаем watchPosition
   navigator.geolocation.getCurrentPosition(
-    p=>renderQibla(p.coords.latitude,p.coords.longitude,pCity||''),
+    function(p){
+      renderQibla(p.coords.latitude,p.coords.longitude,pCity||'');
+      // Запускаем слежение только после первого успешного фикса
+      navigator.geolocation.watchPosition(
+        q=>renderQibla(q.coords.latitude,q.coords.longitude,pCity||''),
+        ()=>{},
+        {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
+      );
+    },
     e=>showErr(e.code===1?t.den:t.err),
     {enableHighAccuracy:true,timeout:10000,maximumAge:0}
-  );
-  // Непрерывное слежение — автообновляет позицию при движении
-  navigator.geolocation.watchPosition(
-    p=>renderQibla(p.coords.latitude,p.coords.longitude,pCity||''),
-    ()=>{},
-    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 })();
 </script>
