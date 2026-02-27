@@ -388,7 +388,7 @@ function renderQibla(lat,lng,city){
     </div>`;
 
   lastRenderedAngle=null;
-  startCompass();
+  // startCompass вызывается отдельно один раз — не здесь
 }
 
 function showErr(m){document.getElementById('ct').innerHTML=`<div class="ld"><p class="er">⚠️ ${m}</p></div>`}
@@ -449,17 +449,28 @@ renderTasbih();
 (function(){
   if(!isNaN(pLat)&&!isNaN(pLng)){
     renderQibla(pLat,pLng,pCity);
+    startCompass();
     return;
   }
   if(!navigator.geolocation){showErr(t.err);return}
 
-  // Сначала быстрый фикс — только после успеха запускаем watchPosition
+  let compassStarted=false;
+
   navigator.geolocation.getCurrentPosition(
     function(p){
       renderQibla(p.coords.latitude,p.coords.longitude,pCity||'');
-      // Запускаем слежение только после первого успешного фикса
+      // Компас запускаем ровно один раз после первого успешного фикса
+      if(!compassStarted){
+        compassStarted=true;
+        startCompass();
+      }
+      // Слежение за позицией — только обновляет координаты, не трогает компас
       navigator.geolocation.watchPosition(
-        q=>renderQibla(q.coords.latitude,q.coords.longitude,pCity||''),
+        function(q){
+          // Обновляем только qAngle без перерисовки всего и без сброса компаса
+          const newQ=qiblaAngle(q.coords.latitude,q.coords.longitude);
+          qAngle=newQ;
+        },
         ()=>{},
         {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
       );
