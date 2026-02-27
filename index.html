@@ -116,12 +116,13 @@ const KAABA={lat:21.422487,lng:39.826206},R=6371;
    Работает на всех браузерах и всех версиях Telegram.
 */
 (function(){
-  // Запоминаем момент первой загрузки
-  const loadedAt = Date.now();
-
+  let hiddenAt = 0;
   document.addEventListener('visibilitychange', function(){
-    if(document.visibilityState === 'visible'){
-      const awayMs = Date.now() - loadedAt;
+    if(document.visibilityState === 'hidden'){
+      // Запоминаем момент скрытия
+      hiddenAt = Date.now();
+    } else if(document.visibilityState === 'visible'){
+      const awayMs = hiddenAt ? Date.now() - hiddenAt : 0;
       // Обновляем если страница была скрыта более 30 секунд
       // (защита от случайных срабатываний при прокрутке)
       if(awayMs > 30000){
@@ -356,11 +357,10 @@ function renderQibla(lat,lng,city){
           <polygon points="${cx},20 ${cx-13},${cy-10} ${cx},${cy-24} ${cx+13},${cy-10}" fill="url(#ag)"/>
           <polygon points="${cx},${S-20} ${cx-9},${cy+10} ${cx},${cy+24} ${cx+9},${cy+10}" fill="rgba(201,168,76,.12)"/>
         </g>
-        <text x="${cx}" y="14" text-anchor="middle" font-size="19">🕋</text>
         <circle cx="${cx}" cy="${cy}" r="5" fill="#0B1D15" stroke="#C9A84C" stroke-width="2"/>
         <circle cx="${cx}" cy="${cy}" r="2" fill="#C9A84C"/>
       </svg>
-      <div class="dial" id="dial"><svg viewBox="0 0 ${S} ${S}">${ticks}${cs}</svg></div>
+      <div class="dial" id="dial"><svg viewBox="0 0 ${S} ${S}">${ticks}${cs}<text x="${cx}" y="14" text-anchor="middle" font-size="19">🕋</text></svg></div>
     </div>
     <div class="aligned" id="aligned">${t.face}</div>
     <div class="ibar">
