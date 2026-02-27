@@ -468,37 +468,82 @@ function updProg(){
 /* ═══ INIT ═══ */
 renderTasbih();
 (function(){
+  // Координаты переданы через URL — геолокация не нужна
   if(!isNaN(pLat)&&!isNaN(pLng)){
     renderQibla(pLat,pLng,pCity);
     startCompass();
     return;
   }
-  if(!navigator.geolocation){showErr(t.err);return}
+
+  if(!navigator.geolocation){
+    showErr(t.err);
+    return;
+  }
 
   let compassStarted=false;
+  let watchId=null;
 
-  navigator.geolocation.getCurrentPosition(
-    function(p){
-      renderQibla(p.coords.latitude,p.coords.longitude,pCity||'');
-      // Компас запускаем ровно один раз после первого успешного фикса
-      if(!compassStarted){
-        compassStarted=true;
-        startCompass();
-      }
-      // Слежение за позицией — только обновляет координаты, не трогает компас
-      navigator.geolocation.watchPosition(
-        function(q){
-          // Обновляем только qAngle без перерисовки всего и без сброса компаса
-          const newQ=qiblaAngle(q.coords.latitude,q.coords.longitude);
-          qAngle=newQ;
-        },
-        ()=>{},
+  function onGeoSuccess(p){
+    renderQibla(p.coords.latitude,p.coords.longitude,pCity||'');
+    if(!compassStarted){
+      compassStarted=true;
+      startCompass();
+    }
+    // watchPosition запускаем только один раз
+    if(watchId===null){
+      watchId=navigator.geolocation.watchPosition(
+        function(q){ qAngle=qiblaAngle(q.coords.latitude,q.coords.longitude); },
+        function(){},
         {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
       );
-    },
-    e=>showErr(e.code===1?t.den:t.err),
-    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
-  );
+    }
+  }
+
+  function onGeoError(e){
+    if(e.code===1){
+      // PERMISSION_DENIED — показываем понятное сообщение
+      showErr(t.den);
+    } else if(e.code===3){
+      // TIMEOUT — пробуем ещё раз с меньшей точностью
+      navigator.geolocation.getCurrentPosition(
+        onGeoSuccess,
+        ()=>showErr(t.err),
+        {enableHighAccuracy:false,timeout:10000,maximumAge:30000}
+      );
+    } else {
+      showErr(t.err);
+    }
+  }
+
+  // Проверяем статус разрешения через Permissions API (если доступен)
+  if(navigator.permissions&&navigator.permissions.query){
+    navigator.permissions.query({name:'geolocation'}).then(function(result){
+      if(result.state==='denied'){
+        showErr(t.den);
+        return;
+      }
+      // 'granted' или 'prompt' — запрашиваем позицию
+      navigator.geolocation.getCurrentPosition(onGeoSuccess,onGeoError,
+        {enableHighAccuracy:true,timeout:10000,maximumAge:0});
+
+      // Следим за изменением разрешения (пользователь может включить/выключить)
+      result.onchange=function(){
+        if(result.state==='denied') showErr(t.den);
+        else if(result.state==='granted'){
+          navigator.geolocation.getCurrentPosition(onGeoSuccess,onGeoError,
+            {enableHighAccuracy:true,timeout:10000,maximumAge:0});
+        }
+      };
+    }).catch(function(){
+      // Permissions API не поддерживается — просто запрашиваем
+      navigator.geolocation.getCurrentPosition(onGeoSuccess,onGeoError,
+        {enableHighAccuracy:true,timeout:10000,maximumAge:0});
+    });
+  } else {
+    // Нет Permissions API — просто запрашиваем
+    navigator.geolocation.getCurrentPosition(onGeoSuccess,onGeoError,
+      {enableHighAccuracy:true,timeout:10000,maximumAge:0});
+  }
 })();
 </script>
 </body>
