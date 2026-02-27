@@ -123,15 +123,14 @@ const KAABA={lat:21.422487,lng:39.826206},R=6371;
       hiddenAt = Date.now();
     } else if(document.visibilityState === 'visible'){
       const awayMs = hiddenAt ? Date.now() - hiddenAt : 0;
-      // Обновляем если страница была скрыта более 30 секунд
-      // (защита от случайных срабатываний при прокрутке)
       if(awayMs > 30000){
         location.reload();
       } else {
-        // Страница открыта недавно — просто сбрасываем буфер компаса
+        // Сбрасываем буфер и lastRenderedAngle — dial плавно пересчитается заново
         if(typeof bufIdx !== 'undefined'){
           bufIdx=0; bufCount=0;
           for(let i=0;i<BUF_SIZE;i++){bufCos[i]=0;bufSin[i]=0;}
+          lastRenderedAngle=null;
         }
       }
     }
@@ -142,6 +141,7 @@ const KAABA={lat:21.422487,lng:39.826206},R=6371;
     if(typeof bufIdx !== 'undefined'){
       bufIdx=0; bufCount=0;
       for(let i=0;i<BUF_SIZE;i++){bufCos[i]=0;bufSin[i]=0;}
+      lastRenderedAngle=null;
     }
   });
 })();
@@ -220,7 +220,8 @@ function pushHeading(h){
 }
 
 function getSmoothedHeading(){
-  if(bufCount===0)return 0;
+  // Ждём минимум 5 реальных сэмплов — иначе нули в буфере тянут среднее к 0
+  if(bufCount<5)return null;
   let sc=0,ss=0;
   for(let i=0;i<bufCount;i++){sc+=bufCos[i];ss+=bufSin[i]}
   let avg=toDeg(Math.atan2(ss/bufCount,sc/bufCount));
@@ -269,6 +270,9 @@ function doRender(){
   if(!dial)return;
 
   const heading=getSmoothedHeading();
+  // Не рендерим пока нет достаточно сэмплов — иначе dial прыгает к qAngle
+  if(heading===null)return;
+
   const targetAngle=qAngle-heading;
 
   if(lastRenderedAngle!==null){
@@ -368,7 +372,7 @@ function renderQibla(lat,lng,city){
       <div class="ib"><div class="l">${t.qibla}</div><div class="v">${qAngle.toFixed(1)}°</div></div>
     </div>`;
 
-  lastRenderedAngle=qAngle;
+  lastRenderedAngle=null;
   startCompass();
 }
 
