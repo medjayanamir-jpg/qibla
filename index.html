@@ -195,6 +195,9 @@ function haversine(lat,lng){
 }
 function cDir(b){return t.dirs[Math.round(b/22.5)%16]}
 
+/* ── Геолокация подтверждена — только тогда разрешаем компас ── */
+let geoConfirmed=false;
+
 /* ── Compass state ── */
 let qAngle=0;
 let compassOk=false;
@@ -269,6 +272,8 @@ function scheduleRender(){
 
 function doRender(){
   renderQueued=false;
+  // Не рендерим компас если геолокация не подтверждена
+  if(!geoConfirmed)return;
   const dial=document.getElementById('dial');
   const qarrow=document.getElementById('qarrow');
   if(!dial||!qarrow)return;
@@ -326,6 +331,11 @@ function doRender(){
 
 /* ── Start compass listeners with correct priority ── */
 function startCompass(){
+  // Не запускаем компас если геолокация не подтверждена
+  if(!geoConfirmed){
+    console.warn('startCompass: геолокация не подтверждена, компас не запущен');
+    return;
+  }
   // PRIORITY 1: deviceorientationabsolute (Chrome Android — true north)
   if('ondeviceorientationabsolute' in window||window.DeviceOrientationAbsoluteEvent){
     window.addEventListener('deviceorientationabsolute',onAbsoluteSensor,true);
@@ -468,8 +478,9 @@ function updProg(){
 /* ═══ INIT ═══ */
 renderTasbih();
 (function(){
-  // Координаты переданы через URL — геолокация не нужна
+  // Координаты переданы через URL — считаем геолокацию подтверждённой
   if(!isNaN(pLat)&&!isNaN(pLng)){
+    geoConfirmed=true;
     renderQibla(pLat,pLng,pCity);
     startCompass();
     return;
@@ -484,6 +495,7 @@ renderTasbih();
   let watchId=null;
 
   function onGeoSuccess(p){
+    geoConfirmed=true; // ✅ геолокация подтверждена — теперь компас разрешён
     renderQibla(p.coords.latitude,p.coords.longitude,pCity||'');
     if(!compassStarted){
       compassStarted=true;
