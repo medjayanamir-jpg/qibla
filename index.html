@@ -490,20 +490,21 @@ renderTasbih();
 
   let compassStarted=false;
   let watchId=null;
+  let retryTimer=null;
+  let requesting=false;
 
   function onGeoSuccess(p){
+    requesting=false;
+    if(retryTimer){clearInterval(retryTimer);retryTimer=null;}
     const lat=p.coords.latitude,lng=p.coords.longitude;
     geoConfirmed=true;
-    // Если компас ещё не запущен — рисуем страницу и стартуем
     if(!compassStarted){
       renderQibla(lat,lng,pCity||'');
       compassStarted=true;
       startCompass();
     } else {
-      // Просто обновляем угол без перерисовки
       qAngle=qiblaAngle(lat,lng);
     }
-    // watchPosition — один раз
     if(watchId===null){
       watchId=navigator.geolocation.watchPosition(
         onGeoSuccess,
@@ -514,15 +515,29 @@ renderTasbih();
   }
 
   function onGeoError(e){
+    requesting=false;
     if(e.code===1){
+      // Отказано — показываем сообщение но продолжаем повторять каждые 3 сек
+      // (пользователь может разрешить в настройках и вернуться)
       showErr(t.den);
+      scheduleRetry(3000);
     } else {
-      // Таймаут или другая ошибка — пробуем снова через 5 сек
-      setTimeout(requestGeo,5000);
+      // Таймаут / другая ошибка — повторяем через 5 сек
+      scheduleRetry(5000);
     }
   }
 
+  function scheduleRetry(ms){
+    if(retryTimer)return; // уже запланирован
+    retryTimer=setTimeout(function(){
+      retryTimer=null;
+      if(!geoConfirmed) requestGeo();
+    },ms);
+  }
+
   function requestGeo(){
+    if(requesting||geoConfirmed)return;
+    requesting=true;
     navigator.geolocation.getCurrentPosition(
       onGeoSuccess,
       onGeoError,
@@ -533,12 +548,26 @@ renderTasbih();
   // Первый запрос
   requestGeo();
 
-  // Проверка каждую минуту — на случай если геолокация была выключена и снова включена
-  setInterval(function(){
-    if(!geoConfirmed){
+  // Когда пользователь возвращается в приложение (после настроек) — сразу повторяем
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'&&!geoConfirmed){
+      if(retryTimer){clearTimeout(retryTimer);retryTimer=null;}
       requestGeo();
     }
-  },60000);
+  });
+
+  // Telegram: слушаем locationManagerUpdated (срабатывает когда пользователь дал разрешение)
+  try{
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(tg&&tg.onEvent){
+      tg.onEvent('locationManagerUpdated',function(){
+        if(!geoConfirmed){
+          if(retryTimer){clearTimeout(retryTimer);retryTimer=null;}
+          requestGeo();
+        }
+      });
+    }
+  }catch(e){}
 })();
 </script>
 </body>
