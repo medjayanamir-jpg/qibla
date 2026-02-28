@@ -478,7 +478,7 @@ function updProg(){
 /* ═══ INIT ═══ */
 renderTasbih();
 (function(){
-  // Координаты переданы через URL — считаем геолокацию подтверждённой
+  // Координаты переданы через URL
   if(!isNaN(pLat)&&!isNaN(pLng)){
     geoConfirmed=true;
     renderQibla(pLat,pLng,pCity);
@@ -496,85 +496,93 @@ renderTasbih();
       compassStarted=true;
       startCompass();
     }
+    // watchPosition — один раз, только нативный (Telegram LocationManager не даёт real-time)
     if(watchId===null&&navigator.geolocation){
       watchId=navigator.geolocation.watchPosition(
-        function(q){ qAngle=qiblaAngle(q.coords.latitude,q.coords.longitude); },
+        function(q){qAngle=qiblaAngle(q.coords.latitude,q.coords.longitude);},
         function(){},
         {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
       );
     }
   }
 
-  function onGeoError(e){
-    const code=e&&e.code;
-    if(code===1) showErr(t.den);
-    else if(code===3){
-      navigator.geolocation&&navigator.geolocation.getCurrentPosition(
-        p=>onGeoSuccess(p.coords.latitude,p.coords.longitude),
-        ()=>showErr(t.err),
-        {enableHighAccuracy:false,timeout:10000,maximumAge:30000}
-      );
-    } else showErr(t.err);
+  function showDenied(){
+    // Показываем кнопку для открытия настроек
+    document.getElementById('ct').innerHTML=`
+      <div class="ld">
+        <p class="er">📍 ${t.den}</p>
+        <button onclick="openGeoSettings()" style="
+          margin-top:16px;background:rgba(201,168,76,.2);border:1px solid var(--gold);
+          color:var(--gold-l);border-radius:20px;padding:8px 22px;
+          font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans',sans-serif
+        ">⚙️ Открыть настройки</button>
+      </div>`;
   }
 
-  // ── Попытка 1: Telegram LocationManager (работает в Telegram WebApp) ──
+  window.openGeoSettings=function(){
+    const lm=window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.LocationManager;
+    if(lm&&lm.isInited) lm.openSettings();
+    else if(navigator.permissions&&navigator.permissions.query){
+      navigator.permissions.query({name:'geolocation'}).then(function(r){
+        if(r.state==='denied') Telegram&&Telegram.WebApp&&Telegram.WebApp.openLink&&
+          Telegram.WebApp.openLink('app-settings:');
+      });
+    }
+  };
+
+  function tryNativeGeo(){
+    if(!navigator.geolocation){showErr(t.err);return;}
+    navigator.geolocation.getCurrentPosition(
+      function(p){onGeoSuccess(p.coords.latitude,p.coords.longitude);},
+      function(e){
+        if(e.code===1) showDenied();
+        else if(e.code===3){
+          // Таймаут — пробуем без высокой точности
+          navigator.geolocation.getCurrentPosition(
+            function(p){onGeoSuccess(p.coords.latitude,p.coords.longitude);},
+            function(){showErr(t.err);},
+            {enableHighAccuracy:false,timeout:10000,maximumAge:30000}
+          );
+        } else showErr(t.err);
+      },
+      {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+    );
+  }
+
+  // Telegram LocationManager (Bot API 8.0+)
   const tg=window.Telegram&&window.Telegram.WebApp;
   const lm=tg&&tg.LocationManager;
 
   if(lm){
-    // Инициализируем LocationManager
     lm.init(function(){
       if(!lm.isLocationAvailable){
-        // Telegram говорит что геолокация недоступна — пробуем нативный API
+        // Устройство не поддерживает геолокацию
         tryNativeGeo();
         return;
       }
       if(!lm.isAccessGranted){
-        // Запрашиваем разрешение через Telegram
-        lm.openSettings&&lm.openSettings();
-        // Ждём и пробуем снова
-        setTimeout(function(){
-          lm.getLocation(function(loc){
-            if(loc) onGeoSuccess(loc.latitude,loc.longitude);
-            else tryNativeGeo();
-          });
-        },2000);
+        // Разрешение не дано — показываем кнопку настроек (нельзя автоматически)
+        showDenied();
+        // Слушаем событие когда пользователь вернётся с настроек
+        tg.onEvent('locationManagerUpdated',function(){
+          if(lm.isAccessGranted){
+            lm.getLocation(function(loc){
+              if(loc) onGeoSuccess(loc.latitude,loc.longitude);
+              else tryNativeGeo();
+            });
+          }
+        });
         return;
       }
-      // Разрешение уже есть — получаем позицию
+      // Разрешение есть — запрашиваем позицию
       lm.getLocation(function(loc){
         if(loc) onGeoSuccess(loc.latitude,loc.longitude);
-        else tryNativeGeo();
+        else tryNativeGeo(); // LocationManager вернул null — fallback
       });
     });
   } else {
     // Нет Telegram LocationManager — нативный API
     tryNativeGeo();
-  }
-
-  function tryNativeGeo(){
-    if(!navigator.geolocation){showErr(t.err);return}
-
-    function doGet(){
-      navigator.geolocation.getCurrentPosition(
-        p=>onGeoSuccess(p.coords.latitude,p.coords.longitude),
-        onGeoError,
-        {enableHighAccuracy:true,timeout:10000,maximumAge:0}
-      );
-    }
-
-    if(navigator.permissions&&navigator.permissions.query){
-      navigator.permissions.query({name:'geolocation'}).then(function(result){
-        if(result.state==='denied'){showErr(t.den);return}
-        doGet();
-        result.onchange=function(){
-          if(result.state==='denied') showErr(t.den);
-          else if(result.state==='granted') doGet();
-        };
-      }).catch(doGet);
-    } else {
-      doGet();
-    }
   }
 })();
 </script>
